@@ -16,7 +16,7 @@
 #define NOM_SHM "/mon_shm_a_moi_589422985365427"
 
 // Taille de notre tampon
-#define N 10
+#define BUF_SIZE 10
 
 // Nos variables en mémoire partagée.
 struct fifo {
