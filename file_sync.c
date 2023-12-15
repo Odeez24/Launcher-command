@@ -12,7 +12,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#iclude
+#include "file_sync.h"
 
 // Taille de notre tampon
 #define BUF_SIZE 10
@@ -26,7 +26,7 @@ struct fifo {
   sem_t plein;
   size_t tete;      // Position d'ajout dans le tampon
   size_t queue;     // Position de suppression dans le tampon
-  (pid_t) buffer[]; // Le tampon contenant les données
+  pid_t buffer[]; // Le tampon contenant les données
 };
 
 // L'en-tête du segment de mémoire partagée
@@ -34,78 +34,88 @@ struct fifo *fifo_p = NULL;
 
 #define TAILLE_SHM (sizeof(struct fifo) + BUF_SIZE)
 
-int main(void) {
+int create_file_sync(void) {
   int shm_fd = shm_open(NOM_SHM, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
   if (shm_fd == -1) {
-    perror("shm_open");
-    exit(EXIT_SUCCESS);
+    return -1;
   }
-
   if (shm_unlink(NOM_SHM) == -1) {
-    perror("shm_unlink");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-
   if (ftruncate(shm_fd, TAILLE_SHM) == -1) {
-    perror("ftruncate");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-
   char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ | PROT_WRITE, MAP_SHARED,
-    shm_fd, 0);
+      shm_fd, 0);
   if (shm_ptr == MAP_FAILED) {
-    perror("sem_open");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-
   fifo_p = (struct fifo *) shm_ptr;
-
   // Initialisation des variables
   if (sem_init(&fifo_p->mutex, 1, 1) == -1) {
-    perror("sem_init");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-
   if (sem_init(&fifo_p->vide, 1, BUF_SIZE) == -1) {
-    perror("sem_init");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-
   if (sem_init(&fifo_p->plein, 1, 0) == -1) {
-    perror("sem_init");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-
   fifo_p->tete = 0;
   fifo_p->queue = 0;
+  return 0;
+}
 
 
-  // Il faudrait prendre des précautions particulières afin d'être sûr
-  // que les sémaphores sont détruits à la fin du processus (gestion des signaux).
+int destroy_file(void){
   if (sem_destroy(&fifo_p->mutex) == -1) {
-    perror("sem_destroy");
-    exit(EXIT_FAILURE);
+    return -1;
   }
   if (sem_destroy(&fifo_p->plein) == -1) {
-    perror("sem_destroy");
-    exit(EXIT_FAILURE);
+    return -1;
   }
   if (sem_destroy(&fifo_p->vide) == -1) {
-    perror("sem_destroy");
-    exit(EXIT_FAILURE);
+    return -1;
   }
-  if (shm_unlink (NOM_SHM) == -1){
-    perror("shm_unlink");
-    exit(EXIT_FAILURE);
+  if (shm_unlink(NOM_SHM) == -1) {
+    return -1;
   }
-
-  exit(EXIT_SUCCESS);
+  return 0;
 }
 
-pid_t enfiler (pid_t donnee){
-
+int enfiler(pid_t donnee) {
+  if (sem_wait(&fifo_p->vide) == -1) {
+   return -1;
+  }
+  if (sem_wait(&fifo_p->mutex) == -1) {
+    return -1;
+  }
+  fifo_p->buffer[fifo_p->tete] = donnee;
+  fifo_p->tete = (fifo_p->tete + 1) % BUF_SIZE;
+  if (sem_post(&fifo_p->mutex) == -1) {
+    return -1;
+  }
+  if (sem_post(&fifo_p->plein) == -1) {
+    return -1;
+  }
+  return 0;
 }
 
-pid_t defiler (){
 
+pid_t defiler(void) {
+  if (sem_wait(&fifo_p->plein) == -1) {
+    return -1;
+  }
+  if (sem_wait(&fifo_p->mutex) == -1) {
+    return -1;
+  }
+  pid_t donnee = fifo_p->buffer[fifo_p->queue];
+  fifo_p->queue = (fifo_p->queue + 1) % BUF_SIZE;
+  if (sem_post(&fifo_p->mutex) == -1) {
+    return -1;
+  }
+  if (sem_post(&fifo_p->vide) == -1) {
+    return -1;
+  }
+  return donnee;
 }
