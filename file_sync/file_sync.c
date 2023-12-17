@@ -26,7 +26,7 @@ struct fifo {
   sem_t plein;
   size_t tete;      // Position d'ajout dans le tampon
   size_t queue;     // Position de suppression dans le tampon
-  pid_t buffer[]; // Le tampon contenant les données
+  pid_t buffer[];   // Le tampon contenant les données
 };
 
 // L'en-tête du segment de mémoire partagée
