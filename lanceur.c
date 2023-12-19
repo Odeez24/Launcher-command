@@ -22,7 +22,7 @@
 //--- Marco nom des tubes ------------------------------------------------------
 
 #define TUBE_CL "TUBE_CLIENT_"
-#define TUBE_REP "TUBE_REP_CLIENT_"
+#define TUBE_RES "TUBE_RES_CLIENT_"
 #define TUBE_ERR "TUBE_ERR_CLIENT_"
 
 
@@ -60,7 +60,7 @@ int main(void) {
 	act.sa_flags = 0;
 	sigemptyset(&act.sa_mask);
   sigaction(SIGINT, &act, NULL);
-  pthread_t *th;
+  pthread_t th;
   while (work){
     pid_t p = defiler();
     struct my_thread_args* a = malloc(sizeof(struct my_thread_args));
@@ -69,7 +69,7 @@ int main(void) {
       exit(EXIT_FAILURE);
     }
     a->client = p;
-    if ((errnum = pthread_create(th, NULL, (start_routine_type)run, a)) != 0) {
+    if ((errnum = pthread_create(&th, NULL, (start_routine_type)run, a)) != 0) {
         fprintf(stderr, "pthread_create: %s\n", strerror(errnum));
         exit(EXIT_FAILURE);
     }
@@ -77,7 +77,7 @@ int main(void) {
   }
   for (int i = 0; i < nbth; ++i){
     int *ptr;
-    if ((errnum = pthread_join(*th, (void **) &ptr)) != 0) {
+    if ((errnum = pthread_join(th, (void **) &ptr)) != 0) {
         fprintf(stderr, "pthread_join: %s\n", strerror(errnum));
         exit(EXIT_FAILURE);
     }
@@ -92,16 +92,89 @@ int main(void) {
 
 void *run(struct my_thread_args* a) {
   int fd;
-  char pid[UCHAR_MAX];
+  char pid[101];
   int pidlen;
   if ((pidlen = snprintf(pid, UCHAR_MAX, "%d", a->client)) < 0 ||
-    pidlen > UCHAR_MAX){
+    pidlen > 100){
     return NULL;
   }
-  char tube_cl[strlen(TUBE_CL) + pidlen];
+  pid[100] = '\0';
+  char tube_cl[(int)strlen(TUBE_CL) + pidlen];
   strcpy (tube_cl,TUBE_CL);
-  tube_cl = strncat(tube_cl, pid, pidlen);
-
+  strncat(tube_cl, pid, (size_t)pidlen);
+  char tube_res[(int)strlen(TUBE_RES) + pidlen];
+  strcpy (tube_res,TUBE_RES);
+  strncat(tube_res, pid, (size_t)pidlen);
+  char tube_err[(int)strlen(TUBE_ERR) + pidlen];
+  strcpy (tube_err,TUBE_ERR);
+  strncat(tube_err, pid, (size_t)pidlen);
+  switch(fork()){
+    case -1:
+      return NULL;
+    case 0:
+      if ((fd = open(tube_cl, O_RDONLY)) == -1){
+    return NULL;
+  }
+  char c;
+  char cmd[40];
+  char opt[100];
+  int i = 0;
+  while ((c = (char)read(fd, &c, sizeof(char))) > 0 && c != '-'){
+    if (c == -1) {
+      return NULL;
+    }
+    cmd[i] = c;
+    ++i;
+  }
+  cmd[i] = '\0';
+  i = 0;
+  while ((c = (char)read(fd, &c, sizeof(char))) > 0){
+    if (c == -1) {
+      return NULL;
+    }
+    opt[i] = c;
+    ++i;
+  }
+  opt[i] = '\0';
+  if (close(fd) == -1){
+    return NULL;
+  }
+      int fd_res;
+      int fd_err;
+      if ((fd_res = open(tube_res, O_WRONLY) == -1)){
+        return NULL;
+      }
+      if ((fd_err = open(tube_err, O_WRONLY) == -1)){
+        return NULL;
+      }
+      if (dup2(fd_res, STDOUT_FILENO) == -1){
+        return NULL;
+      }
+      if (close(fd_res) == -1){
+        return NULL;
+      }
+      if (dup2(fd_err, STDERR_FILENO) == -1){
+        return NULL;
+      }
+      if (close(fd_err) == -1){
+        return NULL;
+      }
+      execvp(cmd, (char * const *)opt);
+      fprintf(stderr, "Error during the execution of the command");
+      exit(EXIT_FAILURE);
+    default:
+      break;
+  }
+  if (wait(NULL) == -1){
+    return NULL;
+  }
+  if (unlink(tube_res) == -1) {
+      return NULL;
+  }
+  if (unlink(tube_err) == -1){
+    return NULL;
+  }
+  return 0;
 }
 
 void mafct (int sig) {
