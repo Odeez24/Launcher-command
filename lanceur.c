@@ -19,6 +19,12 @@
 #include <sys/wait.h>
 #include <file_sync.h>
 
+//--- Marco nom des tubes ------------------------------------------------------
+
+#define TUBE_CL "TUBE_CLIENT_"
+#define TUBE_REP "TUBE_REP_CLIENT_"
+#define TUBE_ERR "TUBE_ERR_CLIENT_"
+
 
 //--- Outils pour les threads --------------------------------------------------
 /*
@@ -59,16 +65,12 @@ int main(void) {
     pid_t p = defiler();
     struct my_thread_args* a = malloc(sizeof(struct my_thread_args));
     if (a == NULL) {
-      perror("malloc()");
+      fprintf(stderr, "Error: malloc");
       exit(EXIT_FAILURE);
     }
     a->client = p;
-    if (th == NULL){
-      fprintf(stderr, "pthread_join: %s\n", strerror(errnum));
-        exit(EXIT_FAILURE);
-    }
     if ((errnum = pthread_create(th, NULL, (start_routine_type)run, a)) != 0) {
-        fprintf(stderr, "Error: malloc");
+        fprintf(stderr, "pthread_create: %s\n", strerror(errnum));
         exit(EXIT_FAILURE);
     }
     ++nbth;
@@ -91,7 +93,15 @@ int main(void) {
 void *run(struct my_thread_args* a) {
   int fd;
   char pid[UCHAR_MAX];
-  sprintf(pid, "%d", a->client);
+  int pidlen;
+  if ((pidlen = snprintf(pid, UCHAR_MAX, "%d", a->client)) < 0 ||
+    pidlen > UCHAR_MAX){
+    return NULL;
+  }
+  char tube_cl[strlen(TUBE_CL) + pidlen];
+  strcpy (tube_cl,TUBE_CL);
+  tube_cl = strncat(tube_cl, pid, pidlen);
+
 }
 
 void mafct (int sig) {
