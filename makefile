@@ -1,4 +1,4 @@
-file_dir = ../file_sync/
+file_dir = ./file_sync/
 CC = gcc
 CFLAGS = -std=c18 \
   -Wall -Wconversion -Werror -Wextra -Wpedantic -Wwrite-strings -pthread \
@@ -20,7 +20,7 @@ $(executable): $(objects)
 	$(CC) $(objects) -o $(executable)
 
 lanceur.o: lanceur.c file_sync.h
-file.o: file_sync.h file_sync.h
+file.o: file_sync.c file_sync.h
 
 
 clean:
