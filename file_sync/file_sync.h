@@ -6,8 +6,10 @@
 //    atomique (on ne peut retirer qu'un seul ou ajouter qu'un seul éléments
 //    à chaque opération)
 
-#ifndef SLOWER__H
-#define SLOWER__H
+#ifndef FILE_SYNC__H
+#define FILE_SYNC__H
+
+typedef struct fifo fifo;
 
 #include <stdlib.h>
 //  create_file_sync : crée un segment de mémoire partagée contenant les

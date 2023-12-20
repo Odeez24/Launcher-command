@@ -50,7 +50,7 @@ int create_file_sync(void) {
   if (shm_ptr == MAP_FAILED) {
     return -1;
   }
-  fifo_p = (struct fifo *) shm_ptr;
+  fifo_p = (fifo *) shm_ptr;
   // Initialisation des variables
   if (sem_init(&fifo_p->mutex, 1, 1) == -1) {
     return -1;
@@ -68,6 +68,13 @@ int create_file_sync(void) {
 
 
 int destroy_file(void){
+  int shm_fd = shm_open(NOM_SHM, O_RDWR,  S_IRUSR | S_IWUSR);
+  if (shm_fd == -1) {
+    return -1;
+  }
+  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,
+      shm_fd, 0);
+  fifo_p = (fifo *) shm_ptr;
   if (sem_destroy(&fifo_p->mutex) == -1) {
     return -1;
   }
@@ -84,6 +91,13 @@ int destroy_file(void){
 }
 
 int enfiler(pid_t donnee) {
+  int shm_fd = shm_open(NOM_SHM, O_RDWR,  S_IRUSR | S_IWUSR);
+  if (shm_fd == -1) {
+    return -1;
+  }
+  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,
+      shm_fd, 0);
+  fifo_p = (fifo *) shm_ptr;
   if (sem_wait(&fifo_p->vide) == -1) {
    return -1;
   }
@@ -103,6 +117,13 @@ int enfiler(pid_t donnee) {
 
 
 pid_t defiler(void) {
+  int shm_fd = shm_open(NOM_SHM, O_RDWR,  S_IRUSR | S_IWUSR);
+  if (shm_fd == -1) {
+    return -1;
+  }
+  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,
+      shm_fd, 0);
+  fifo_p = (fifo *) shm_ptr;
   if (sem_wait(&fifo_p->plein) == -1) {
     return -1;
   }

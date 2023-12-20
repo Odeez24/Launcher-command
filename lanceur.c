@@ -39,8 +39,7 @@ void *run(struct my_thread_args *a);
 typedef void *(*start_routine_type)(void *);
 
 //--- Outils pour les signaux --------------------------------------------------
-// Variable pour la fin de l'exécution
-bool work;
+int nbth = 0;
 
 //  mafct: fonction de gestion des signaux
 void mafct(int sig);
@@ -48,20 +47,18 @@ void mafct(int sig);
 //--- Main ---------------------------------------------------------------------
 int main(void) {
   int errnum;
-  work = true;
   if (create_file_sync() == -1) {
     fprintf(stderr, "Error during create_file_sync");
     exit(EXIT_FAILURE);
   }
-  int nbth = 0;
   struct sigaction act;
   act.sa_handler = mafct;
   act.sa_flags = 0;
   sigemptyset(&act.sa_mask);
   sigaction(SIGINT, &act, NULL);
-  pthread_t th;
-  while (work) {
-    pid_t p = defiler();
+  pid_t p;
+  while ((p = defiler()) != -1){
+    pthread_t th;
     struct my_thread_args *a = malloc(sizeof(struct my_thread_args));
     if (a == NULL) {
       fprintf(stderr, "Error: malloc");
@@ -76,44 +73,49 @@ int main(void) {
     ++nbth;
   }
   for (int i = 0; i < nbth; ++i) {
-    int *ptr;
-    if ((errnum = pthread_join(th, (void **) &ptr)) != 0) {
-      fprintf(stderr, "pthread_join: %s\n", strerror(errnum));
-      exit(EXIT_FAILURE);
+      pthread_exit(NULL);
     }
-    free(ptr);
-  }
   if (destroy_file() == -1) {
     fprintf(stderr, "Error during destroy_file");
     exit(EXIT_FAILURE);
   }
-  exit(EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
 
 void *run(struct my_thread_args *a) {
   int fd;
-  char pid[101];
+  char pid[51];
   int pidlen;
-  if ((pidlen = snprintf(pid, UCHAR_MAX, "%d", a->client)) < 0
-      || pidlen > 100) {
+  if ((pidlen = snprintf(pid, 50, "%d", a->client)) < 0
+      || pidlen > 50) {
     return NULL;
   }
-  pid[100] = '\0';
+  pid[pidlen - 1] = '\0';
   char tube_cl[(int) strlen(TUBE_CL) + pidlen];
   strcpy(tube_cl, TUBE_CL);
-  strncat(tube_cl, pid, (size_t) pidlen);
+  strcat(tube_cl, pid);
   char tube_res[(int) strlen(TUBE_RES) + pidlen];
   strcpy(tube_res, TUBE_RES);
-  strncat(tube_res, pid, (size_t) pidlen);
+  strcat(tube_res, pid);
   char tube_err[(int) strlen(TUBE_ERR) + pidlen];
   strcpy(tube_err, TUBE_ERR);
-  strncat(tube_err, pid, (size_t) pidlen);
+  strcat(tube_err, pid);
+  if (mkfifo(tube_res, S_IRUSR | S_IWUSR) == -1) {
+    perror("mkfifo");
+    exit(EXIT_FAILURE);
+  }
+  if (mkfifo(tube_err, S_IRUSR | S_IWUSR) == -1) {
+    perror("mkfifo");
+    exit(EXIT_FAILURE);
+  }
   switch (fork()) {
     case -1:
-      return NULL;
+      perror("fork");
+      exit(EXIT_FAILURE);
     case 0:
       if ((fd = open(tube_cl, O_RDONLY)) == -1) {
-        return NULL;
+        perror("open");
+        exit(EXIT_FAILURE);
       }
       char c;
       char cmd[40];
@@ -121,43 +123,54 @@ void *run(struct my_thread_args *a) {
       int i = 0;
       while ((c = (char) read(fd, &c, sizeof(char))) > 0 && c != '-') {
         if (c == -1) {
-          return NULL;
+          perror("read");
+          exit(EXIT_FAILURE);
         }
         cmd[i] = c;
         ++i;
       }
       cmd[i] = '\0';
       i = 0;
+      opt[i] = c;
+      ++i;
       while ((c = (char) read(fd, &c, sizeof(char))) > 0) {
         if (c == -1) {
-          return NULL;
+          perror("read");
+          exit(EXIT_FAILURE);
         }
         opt[i] = c;
         ++i;
       }
       opt[i] = '\0';
       if (close(fd) == -1) {
-        return NULL;
+        perror("close");
+        exit(EXIT_FAILURE);
       }
       int fd_res;
       int fd_err;
       if ((fd_res = open(tube_res, O_WRONLY) == -1)) {
-        return NULL;
+        perror("open");
+        exit(EXIT_FAILURE);
       }
       if ((fd_err = open(tube_err, O_WRONLY) == -1)) {
-        return NULL;
+        perror("open");
+        exit(EXIT_FAILURE);
       }
       if (dup2(fd_res, STDOUT_FILENO) == -1) {
-        return NULL;
+        perror("dup2");
+        exit(EXIT_FAILURE);
       }
       if (close(fd_res) == -1) {
-        return NULL;
+        perror("close");
+        exit(EXIT_FAILURE);
       }
       if (dup2(fd_err, STDERR_FILENO) == -1) {
-        return NULL;
+        perror("dup2");
+        exit(EXIT_FAILURE);
       }
       if (close(fd_err) == -1) {
-        return NULL;
+        perror("close");
+        exit(EXIT_FAILURE);
       }
       execvp(cmd, (char * const *) opt);
       fprintf(stderr, "Error during the execution of the command");
@@ -166,20 +179,29 @@ void *run(struct my_thread_args *a) {
       break;
   }
   if (wait(NULL) == -1) {
-    return NULL;
+    perror("wait");
+    exit(EXIT_FAILURE);
   }
   if (unlink(tube_res) == -1) {
-    return NULL;
+    perror("unlink");
+    exit(EXIT_FAILURE);
   }
   if (unlink(tube_err) == -1) {
-    return NULL;
+    perror("unlink");
+    exit(EXIT_FAILURE);
   }
   return 0;
 }
 
 void mafct(int sig) {
   if (sig == SIGINT) {
-    work = false;
+    for (int i = 0; i < nbth; ++i) {
+      pthread_exit(NULL);
+    }
+    if (destroy_file() == -1) {
+      fprintf(stderr, "Error during destroy_file");
+      exit(EXIT_FAILURE);
+    }
   }
 }
 
