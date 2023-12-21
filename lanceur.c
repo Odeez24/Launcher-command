@@ -51,7 +51,18 @@ int main(void) {
     fprintf(stderr, "Error during create_file_sync");
     exit(EXIT_FAILURE);
   }
-  struct sigaction act;
+  //if (close(STDIN_FILENO) ==-1){
+    //perror("close");
+    //exit(EXIT_FAILURE);
+  //}
+  //if (close(STDOUT_FILENO) ==-1){
+    //perror("close");
+    //exit(EXIT_FAILURE);
+  //}
+  //if (close(STDERR_FILENO) ==-1){
+    //exit(EXIT_FAILURE);
+  //}
+  //struct sigaction act;
   act.sa_handler = mafct;
   act.sa_flags = 0;
   sigemptyset(&act.sa_mask);
