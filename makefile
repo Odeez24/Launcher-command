@@ -7,25 +7,26 @@ CFLAGS = -std=c18 \
 
 vpath %.c $(file_dir)
 vpath %.h $(file_dir)
-makefile_indicator = .\#makefile\#
-
-objects: file.o lanceur.o 
+objects = file_sync.o lanceur.o 
 executable = lanceur_commande
+makefile_indicator = .\#makefile\#
 
 .PHONY: all clean
 
 all: $(executable)
 
-$(executable): $(objects)
-	$(CC) $(objects) -o $(executable)
-
-lanceur.o: lanceur.c file_sync.h
-file.o: file_sync.c file_sync.h
-
-
 clean:
 	$(RM) $(objects) $(executable)
 	@$(RM) $(makefile_indicator)
+
+$(executable): $(objects)
+	$(CC) $(objects) -o $(executable)
+
+
+file_sync.o: file_sync.c file_sync.h
+lanceur.o: lanceur.c file_sync.h
+
+
 
 include $(makefile_indicator)
 

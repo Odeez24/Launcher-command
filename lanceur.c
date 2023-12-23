@@ -24,6 +24,7 @@
 #define TUBE_CL "TUBE_CLIENT_"
 #define TUBE_RES "TUBE_RES_CLIENT_"
 #define TUBE_ERR "TUBE_ERR_CLIENT_"
+#define BUF_SIZE 4096
 
 //--- Outils pour les threads --------------------------------------------------
 /*
@@ -74,7 +75,7 @@ int main(void) {
       act.sa_handler = mafct;
       act.sa_flags = 0;
       sigemptyset(&act.sa_mask);
-      sigaction(SIGINT, &act, NULL);
+      sigaction(SIGQUIT, &act, NULL);
       pid_t p;
       int errnum;
       while ((p = defiler()) != -1){
@@ -92,13 +93,6 @@ int main(void) {
         }
         ++nbth;
       }
-      for (int i = 0; i < nbth; ++i) {
-          pthread_exit(NULL);
-        }
-      if (destroy_file() == -1) {
-        fprintf(stderr, "Error during destroy_file");
-        exit(EXIT_FAILURE);
-      }
     default:
       break;
   }
@@ -106,65 +100,85 @@ int main(void) {
 }
 
 void *run(struct my_thread_args *a) {
-  int fd;
-  char pid[51];
-  int pidlen;
-  if ((pidlen = snprintf(pid, 50, "%d", a->client)) < 0
-      || pidlen > 50) {
-    return NULL;
-  }
-  pid[pidlen - 1] = '\0';
-  char tube_cl[(int) strlen(TUBE_CL) + pidlen];
-  strcpy(tube_cl, TUBE_CL);
-  strcat(tube_cl, pid);
-  char tube_res[(int) strlen(TUBE_RES) + pidlen];
-  strcpy(tube_res, TUBE_RES);
-  strcat(tube_res, pid);
-  char tube_err[(int) strlen(TUBE_ERR) + pidlen];
-  strcpy(tube_err, TUBE_ERR);
-  strcat(tube_err, pid);
-  if (mkfifo(tube_res, S_IRUSR | S_IWUSR) == -1) {
-    perror("mkfifo");
-    exit(EXIT_FAILURE);
-  }
-  if (mkfifo(tube_err, S_IRUSR | S_IWUSR) == -1) {
-    perror("mkfifo");
-    exit(EXIT_FAILURE);
-  }
   switch (fork()) {
     case -1:
       perror("fork");
       exit(EXIT_FAILURE);
     case 0:
+     {
+      int fd;
+      char pid[51];
+      int pidlen;
+      if ((pidlen = snprintf(pid, 50, "%d", a->client)) < 0
+          || pidlen > 50) {
+        return NULL;
+      }
+      pid[pidlen - 1] = '\0';
+      char tube_cl[(int) strlen(TUBE_CL) + pidlen];
+      strcpy(tube_cl, TUBE_CL);
+      strcat(tube_cl, pid);
+      char tube_res[(int) strlen(TUBE_RES) + pidlen];
+      strcpy(tube_res, TUBE_RES);
+      strcat(tube_res, pid);
+      char tube_err[(int) strlen(TUBE_ERR) + pidlen];
+      strcpy(tube_err, TUBE_ERR);
+      strcat(tube_err, pid);
+      if (mkfifo(tube_res, S_IRUSR | S_IWUSR) == -1) {
+        perror("mkfifo");
+        exit(EXIT_FAILURE);
+      }
+      if (mkfifo(tube_err, S_IRUSR | S_IWUSR) == -1) {
+        perror("mkfifo");
+        exit(EXIT_FAILURE);
+      }
+      if (unlink(tube_res) == -1) {
+        perror("unlink");
+        exit(EXIT_FAILURE);
+      }
+      if (unlink(tube_err) == -1) {
+        perror("unlink");
+        exit(EXIT_FAILURE);
+      }
       if ((fd = open(tube_cl, O_RDONLY)) == -1) {
         perror("open");
         exit(EXIT_FAILURE);
       }
       char c;
+      char buffer[BUF_SIZE];
       char cmd[40];
-      char opt[100];
+      int nbarg = 0;
       int i = 0;
-      while ((c = (char) read(fd, &c, sizeof(char))) > 0 && c != '-') {
-        if (c == -1) {
-          perror("read");
-          exit(EXIT_FAILURE);
+      while (read(fd, &c, sizeof(char)) > 0) {
+        buffer[i] = c;
+        if (c == '-' || c == ' ') {
+          ++nbarg;
         }
-        cmd[i] = c;
         ++i;
       }
-      cmd[i] = '\0';
+      buffer[i] = '\0';
+      char *opt[nbarg + 1];
+      bool iscmd = true;
+      int opt_i = 0;
+      int opt_i_i = 0;
       i = 0;
-      opt[i] = c;
-      ++i;
-      while ((c = (char) read(fd, &c, sizeof(char))) > 0) {
-        if (c == -1) {
-          perror("read");
-          exit(EXIT_FAILURE);
+      while ((c = buffer[i]) != '\0'){
+        if (c == '-' || c == ' '){
+          if (iscmd){
+            iscmd = false;
+          } else {
+            ++opt_i;
+            opt_i_i = 0;
+          }
         }
-        opt[i] = c;
+        if (iscmd){
+          cmd[i] = c;
+        } else {
+          opt [opt_i] [opt_i_i] = c;
+          ++opt_i_i;
+        }
         ++i;
       }
-      opt[i] = '\0';
+      opt[nbarg] = (char *)"NULL";
       if (close(fd) == -1) {
         perror("close");
         exit(EXIT_FAILURE);
@@ -196,33 +210,25 @@ void *run(struct my_thread_args *a) {
         exit(EXIT_FAILURE);
       }
       execvp(cmd, (char * const *) opt);
-      fprintf(stderr, "Error during the execution of the command");
+      fprintf(stderr, "Error during the execution of the command\n");
       exit(EXIT_FAILURE);
+    }
     default:
-      break;
-  }
-  if (wait(NULL) == -1) {
-    perror("wait");
-    exit(EXIT_FAILURE);
-  }
-  if (unlink(tube_res) == -1) {
-    perror("unlink");
-    exit(EXIT_FAILURE);
-  }
-  if (unlink(tube_err) == -1) {
-    perror("unlink");
-    exit(EXIT_FAILURE);
+      if (wait(NULL) == -1) {
+      perror("wait");
+      exit(EXIT_FAILURE);
+    }
   }
   return 0;
 }
 
 void mafct(int sig) {
-  if (sig == SIGINT) {
+  if (sig == SIGQUIT) {
     for (int i = 0; i < nbth; ++i) {
       pthread_exit(NULL);
     }
     if (destroy_file() == -1) {
-      fprintf(stderr, "Error during destroy_file");
+      fprintf(stderr, "Error during destroy_file\n");
       exit(EXIT_FAILURE);
     }
   }
