@@ -46,49 +46,61 @@ void mafct(int sig);
 
 //--- Main ---------------------------------------------------------------------
 int main(void) {
-  int errnum;
-  if (create_file_sync() == -1) {
-    fprintf(stderr, "Error during create_file_sync");
-    exit(EXIT_FAILURE);
-  }
-  //if (close(STDIN_FILENO) ==-1){
-    //perror("close");
-    //exit(EXIT_FAILURE);
-  //}
-  //if (close(STDOUT_FILENO) ==-1){
-    //perror("close");
-    //exit(EXIT_FAILURE);
-  //}
-  //if (close(STDERR_FILENO) ==-1){
-    //exit(EXIT_FAILURE);
-  //}
-  //struct sigaction act;
-  act.sa_handler = mafct;
-  act.sa_flags = 0;
-  sigemptyset(&act.sa_mask);
-  sigaction(SIGINT, &act, NULL);
-  pid_t p;
-  while ((p = defiler()) != -1){
-    pthread_t th;
-    struct my_thread_args *a = malloc(sizeof(struct my_thread_args));
-    if (a == NULL) {
-      fprintf(stderr, "Error: malloc");
+  switch(fork()){
+    case -1:
+      perror("fork");
       exit(EXIT_FAILURE);
-    }
-    a->client = p;
-    if ((errnum
-          = pthread_create(&th, NULL, (start_routine_type) run, a)) != 0) {
-      fprintf(stderr, "pthread_create: %s\n", strerror(errnum));
-      exit(EXIT_FAILURE);
-    }
-    ++nbth;
-  }
-  for (int i = 0; i < nbth; ++i) {
-      pthread_exit(NULL);
-    }
-  if (destroy_file() == -1) {
-    fprintf(stderr, "Error during destroy_file");
-    exit(EXIT_FAILURE);
+    case 0:
+      if (create_file_sync() == -1) {
+        fprintf(stderr, "Error during create_file_sync");
+        exit(EXIT_FAILURE);
+      }
+      //if (setsid() < 0){
+        //perror("setsid");
+        //exit(EXIT_FAILURE);
+      //}
+      //if (close(STDIN_FILENO) ==-1){
+        //perror("close");
+        //exit(EXIT_FAILURE);
+      //}
+      //if (close(STDOUT_FILENO) ==-1){
+        //perror("close");
+        //exit(EXIT_FAILURE);
+      //}
+      //if (close(STDERR_FILENO) ==-1){
+        //exit(EXIT_FAILURE);
+      //}
+      struct sigaction act;
+      act.sa_handler = mafct;
+      act.sa_flags = 0;
+      sigemptyset(&act.sa_mask);
+      sigaction(SIGINT, &act, NULL);
+      pid_t p;
+      int errnum;
+      while ((p = defiler()) != -1){
+        pthread_t th;
+        struct my_thread_args *a = malloc(sizeof(struct my_thread_args));
+        if (a == NULL) {
+          fprintf(stderr, "Error: malloc");
+          exit(EXIT_FAILURE);
+        }
+        a->client = p;
+        if ((errnum
+              = pthread_create(&th, NULL, (start_routine_type) run, a)) != 0) {
+          fprintf(stderr, "pthread_create: %s\n", strerror(errnum));
+          exit(EXIT_FAILURE);
+        }
+        ++nbth;
+      }
+      for (int i = 0; i < nbth; ++i) {
+          pthread_exit(NULL);
+        }
+      if (destroy_file() == -1) {
+        fprintf(stderr, "Error during destroy_file");
+        exit(EXIT_FAILURE);
+      }
+    default:
+      break;
   }
   return EXIT_SUCCESS;
 }
