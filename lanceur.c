@@ -7,13 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <limits.h>
 #include <unistd.h>
+#include <semaphore.h>
 #include <pthread.h>
 #include <signal.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <file_sync.h>
@@ -25,6 +23,13 @@
 #define TUBE_ERR "TUBE_ERR_CLIENT_"
 #define BUF_SIZE 4096
 #define CMD_SIZE 50
+
+//--- Taille des tubes ---------------------------------------------------------
+
+#ifndef PID_SIZE
+#define PID_SIZE 51
+#endif
+
 
 //--- Outils pour les threads --------------------------------------------------
 /*
@@ -106,10 +111,10 @@ void *run(struct my_thread_args *a) {
     case 0:
      {
       int fd;
-      char pid[51];
+      char pid[PID_SIZE];
       int pidlen;
-      if ((pidlen = snprintf(pid, 50, "%d", a->client)) < 0
-          || pidlen > 50) {
+      if ((pidlen = snprintf(pid, PID_SIZE - 1, "%d", a->client)) < 0
+          || pidlen > PID_SIZE - 1) {
         return NULL;
       }
       pid[pidlen - 1] = '\0';

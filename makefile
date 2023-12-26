@@ -7,7 +7,7 @@ CFLAGS = -std=c18 \
 
 vpath %.c $(file_dir)
 vpath %.h $(file_dir)
-objects = file_sync.o lanceur.o 
+objects = file_sync.o lanceur.o client.o
 executable = lanceur_commande
 makefile_indicator = .\#makefile\#
 
@@ -25,6 +25,7 @@ $(executable): $(objects)
 
 file_sync.o: file_sync.c file_sync.h
 lanceur.o: lanceur.c file_sync.h
+client.o: file_sync.h
 
 
 
