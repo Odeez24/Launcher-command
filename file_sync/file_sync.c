@@ -117,8 +117,10 @@ int enfiler(pid_t donnee) {
 
 
 pid_t defiler(void) {
+  printf("Passage file 1\n");
   int shm_fd = shm_open(NOM_SHM, O_RDWR,  S_IRUSR | S_IWUSR);
   if (shm_fd == -1) {
+     printf("Passage file err 1\n");
     return -1;
   }
   char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,

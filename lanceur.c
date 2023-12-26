@@ -56,10 +56,10 @@ int main(void) {
         fprintf(stderr, "Error during create_file_sync");
         exit(EXIT_FAILURE);
       }
-      //if (setsid() < 0){
-        //perror("setsid");
-        //exit(EXIT_FAILURE);
-      //}
+      if (setsid() < 0){
+        perror("setsid");
+        exit(EXIT_FAILURE);
+      }
       //if (close(STDIN_FILENO) ==-1){
         //perror("close");
         //exit(EXIT_FAILURE);
@@ -93,9 +93,15 @@ int main(void) {
         }
         ++nbth;
       }
-    default:
+      break;
+    default: ;
+      if (wait(NULL) == -1){
+        perror("wait");
+        exit(EXIT_FAILURE);
+      }
       break;
   }
+
   return EXIT_SUCCESS;
 }
 
