@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <pthread.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -150,7 +149,7 @@ void *run(struct my_thread_args *a) {
       int i = 0;
       while (read(fd, &c, sizeof(char)) > 0) {
         buffer[i] = c;
-        if (c == '-' || c == ' ') {
+        if (c == ' ') {
           ++nbarg;
         }
         ++i;
@@ -162,7 +161,7 @@ void *run(struct my_thread_args *a) {
       int opt_i_i = 0;
       i = 0;
       while ((c = buffer[i]) != '\0'){
-        if (c == '-' || c == ' '){
+        if (c == ' '){
           if (iscmd){
             iscmd = false;
           } else {
