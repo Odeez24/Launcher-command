@@ -25,6 +25,7 @@
 #define TUBE_RES "TUBE_RES_CLIENT_"
 #define TUBE_ERR "TUBE_ERR_CLIENT_"
 #define BUF_SIZE 4096
+#define CMD_SIZE 50
 
 //--- Outils pour les threads --------------------------------------------------
 /*
@@ -52,56 +53,49 @@ int main(void) {
       perror("fork");
       exit(EXIT_FAILURE);
     case 0:
-      if (create_file_sync() == -1) {
-        fprintf(stderr, "Error during create_file_sync");
-        exit(EXIT_FAILURE);
-      }
       if (setsid() < 0){
         perror("setsid");
         exit(EXIT_FAILURE);
       }
-      //if (close(STDIN_FILENO) ==-1){
-        //perror("close");
-        //exit(EXIT_FAILURE);
-      //}
-      //if (close(STDOUT_FILENO) ==-1){
-        //perror("close");
-        //exit(EXIT_FAILURE);
-      //}
-      //if (close(STDERR_FILENO) ==-1){
-        //exit(EXIT_FAILURE);
-      //}
+      if (close(STDIN_FILENO) ==-1){
+        perror("close");
+        exit(EXIT_FAILURE);
+      }
+      if (close(STDOUT_FILENO) ==-1){
+        perror("close");
+        exit(EXIT_FAILURE);
+      }
+      if (close(STDERR_FILENO) ==-1){
+        perror("close");
+        exit(EXIT_FAILURE);
+      }
+      if (create_file_sync() == -1) {
+        exit(EXIT_FAILURE);
+      }
       struct sigaction act;
       act.sa_handler = mafct;
       act.sa_flags = 0;
       sigemptyset(&act.sa_mask);
-      sigaction(SIGQUIT, &act, NULL);
+      if (sigaction(SIGQUIT, &act, NULL) != 0) {
+        return EXIT_FAILURE;
+      }
       pid_t p;
       int errnum;
       while ((p = defiler()) != -1){
         pthread_t th;
         struct my_thread_args *a = malloc(sizeof(struct my_thread_args));
         if (a == NULL) {
-          fprintf(stderr, "Error: malloc");
           exit(EXIT_FAILURE);
         }
         a->client = p;
         if ((errnum
               = pthread_create(&th, NULL, (start_routine_type) run, a)) != 0) {
-          fprintf(stderr, "pthread_create: %s\n", strerror(errnum));
           exit(EXIT_FAILURE);
         }
         ++nbth;
       }
       break;
-    default: ;
-      if (wait(NULL) == -1){
-        perror("wait");
-        exit(EXIT_FAILURE);
-      }
-      break;
   }
-
   return EXIT_SUCCESS;
 }
 
@@ -151,7 +145,7 @@ void *run(struct my_thread_args *a) {
       }
       char c;
       char buffer[BUF_SIZE];
-      char cmd[40];
+      char cmd[CMD_SIZE];
       int nbarg = 0;
       int i = 0;
       while (read(fd, &c, sizeof(char)) > 0) {

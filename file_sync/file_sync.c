@@ -39,9 +39,6 @@ int create_file_sync(void) {
   if (shm_fd == -1) {
     return -1;
   }
-  if (shm_unlink(NOM_SHM) == -1) {
-    return -1;
-  }
   if (ftruncate(shm_fd, TAILLE_SHM) == -1) {
     return -1;
   }
@@ -72,7 +69,7 @@ int destroy_file(void){
   if (shm_fd == -1) {
     return -1;
   }
-  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,
+  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ | PROT_WRITE, MAP_SHARED,
       shm_fd, 0);
   fifo_p = (fifo *) shm_ptr;
   if (sem_destroy(&fifo_p->mutex) == -1) {
@@ -95,7 +92,7 @@ int enfiler(pid_t donnee) {
   if (shm_fd == -1) {
     return -1;
   }
-  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,
+  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ | PROT_WRITE, MAP_SHARED,
       shm_fd, 0);
   fifo_p = (fifo *) shm_ptr;
   if (sem_wait(&fifo_p->vide) == -1) {
@@ -117,13 +114,11 @@ int enfiler(pid_t donnee) {
 
 
 pid_t defiler(void) {
-  printf("Passage file 1\n");
-  int shm_fd = shm_open(NOM_SHM, O_RDWR,  S_IRUSR | S_IWUSR);
+  int shm_fd = shm_open(NOM_SHM, O_RDWR,0);
   if (shm_fd == -1) {
-     printf("Passage file err 1\n");
     return -1;
   }
-  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ, MAP_SHARED,
+  char *shm_ptr = mmap(NULL, TAILLE_SHM, PROT_READ | PROT_WRITE, MAP_SHARED,
       shm_fd, 0);
   fifo_p = (fifo *) shm_ptr;
   if (sem_wait(&fifo_p->plein) == -1) {
