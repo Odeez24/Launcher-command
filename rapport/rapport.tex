@@ -26,8 +26,9 @@ fonction pour ajouter
 et retirer des éléments de cette file.
 \subsection{file\_sync.c}
 Toutes les informations de la file tel que les sémaphores, le buffer et les têtes de lecture 
-et d'écriture sont conservées des un segment de mémoire partagé qui est conservées et
-initialisé
+et d'écriture sont conservées dans un segment de mémoire partagé qui est créer
+dans la fonction \textit{create\_file\_sync} avant l'initialisation des sémaphores, 
+des têtes de lectures et du buffer.
 
 \section{Lanceur}
 \end{document}
