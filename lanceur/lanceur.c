@@ -16,19 +16,14 @@
 #include <sys/wait.h>
 #include <file_sync.h>
 
-//--- Marco nom des tubes ------------------------------------------------------
+//--- Marco tubes ------------------------------------------------------
 
 #define TUBE_CL "TUBE_CLIENT_"
 #define TUBE_RES "TUBE_RES_CLIENT_"
 #define TUBE_ERR "TUBE_ERR_CLIENT_"
 #define BUF_SIZE 4096
 #define CMD_SIZE 50
-
-//--- Taille des tubes ---------------------------------------------------------
-
-#ifndef PID_SIZE
 #define PID_SIZE 51
-#endif
 
 //--- Outils pour les threads --------------------------------------------------
 /*
@@ -40,7 +35,7 @@ struct my_thread_args {
 
 // run: fonction de lancement du thread
 void *run(struct my_thread_args *a);
-
+// Type de la fonction de lancement du thread
 typedef void *(*start_routine_type)(void *);
 
 //--- Outils pour les signaux --------------------------------------------------
@@ -51,6 +46,7 @@ void mafct(int sig);
 
 //--- Main ---------------------------------------------------------------------
 int main(void) {
+  printf("%d\n", getpid());
   switch (fork()) {
     case -1:
       perror("fork");

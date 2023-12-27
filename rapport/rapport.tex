@@ -14,7 +14,26 @@
 \tableofcontents
 \newpage
 \section{Utilisation}
-\section{Client}
+Pour utiliser le projet il faut commencer par lancer le lanceur dans un
+terminal
+\begin{figure}[H]
+  \centering
+  \begin{minted}[autogobble, bgcolor=lightgray, tabsize=2, fontsize=\small, escapeinside=||]{bash}
+      make
+      ./lanceur
+  \end{minted}
+  \caption{Appel au lanceur}
+\end{figure}
+Puis appeler le client
+
+Pour terminer le lanceur l faut utiliser la commande:
+\begin{figure}[H]
+  \centering
+  \begin{minted}[autogobble, bgcolor=lightgray, tabsize=2, fontsize=\small, escapeinside=||]{bash}
+      killall -3 lanceur
+  \end{minted}
+  \caption{Terminaison du lanceur}
+\end{figure}
 \section{File synchronisée}
 La file synchronisée est construite comme une bibliothéque avec un fichier
 interface \textit{file\_sync.h} et un fichier implementation
@@ -25,10 +44,41 @@ synchronisée, un qui libére les ressources allouées à la file et 2 autre
 fonction pour ajouter
 et retirer des éléments de cette file.
 \subsection{file\_sync.c}
-Toutes les informations de la file tel que les sémaphores, le buffer et les têtes de lecture 
+Toutes les informations de la file tel que les sémaphores, le buffer et les
+têtes de lecture
 et d'écriture sont conservées dans un segment de mémoire partagé qui est créer
-dans la fonction \textit{create\_file\_sync} avant l'initialisation des sémaphores, 
+dans la fonction \textit{create\_file\_sync} avant l'initialisation des
+sémaphores,
 des têtes de lectures et du buffer.
+Chaque action sur la file commence par l'ouverture du segment de mémoire
+partagée
+puis pour la fonction \textit{destroy\_file} on détruit toutes les sémaphores
+puis on libére le segment de mémoire partagée. Pour les fonctions
+\textit{defiler} et \textit{enfiler}
+c'est un simple probléme consomateur/producteur avec les sémaphores.
+\section{Lanceur de commande}
+Le nom des tubes est définis par une normes choisis qui s'applique
+entre le lanceur et le client. Cette norme veut que le nom d'un tube soit une
+chaîne de caractére qui
+définit l'utilité du tube suivit du pid du client afin que chaque client
+posséde des tube qui lui sont propres.
+\begin{itemize}
+  \item TUBE\_CLIENT\_: est le tube dans lequel le client écrit les
+        informations
+        pour le lanceur, il est crée par le client.
+  \item TUBE\_RES\_CLIENT\_: est le tube dans lequel le resultat de la commande
+        sera ecrit et envoyé au client, il est crée par le lanceur.
+  \item TUBE\_ERR\_CLIENT\_: est le tube dans lequel une possible erreur lors
+        de l'éxécution de la commande sera ecrit et envoyé au client, il est
+        crée par le lanceur.
+  \item BUF\_SIZE: Taille maximale en nombre de caractére des commandes avec
+        leurs options.
+  \item CMD\_SIZE: Taille maximale en nombre de caractéredu nom de la commande
+        (taille déterminer à partir du nombre de caractére de la plus grande
+        commande
+        linux avec une marge de sécurité).
+  \item PID\_SIZE: Taille maximale en nombre de caractére du pid du client.
+\end{itemize}
+\section{Client}
 
-\section{Lanceur}
 \end{document}

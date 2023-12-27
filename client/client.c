@@ -27,7 +27,7 @@
 
 int main(const int argc, char **argv) {
     if (argc == 1) {
-        fprintf(stderr, "USAGE : client [cmd1] [cmd2] ... [cmdN]");
+        fprintf(stderr, "USAGE : client [cmd1]|[cmd2] |... |[cmdN]");
         return EXIT_SUCCESS;
     }
     char pipe_name[PID_SIZE];

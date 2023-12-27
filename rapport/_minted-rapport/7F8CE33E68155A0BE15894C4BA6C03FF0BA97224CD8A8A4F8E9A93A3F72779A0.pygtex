@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+killall\PYG{+w}{ }\PYGZhy{}3\PYG{+w}{ }lanceur
+\end{Verbatim}
