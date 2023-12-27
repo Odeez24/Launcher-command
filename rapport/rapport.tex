@@ -16,7 +16,18 @@
 \section{Utilisation}
 \section{Client}
 \section{File synchronisée}
-La file synchronisée est construite comme une bibliothéque avec un fichier 
-pour l'interface et un fichier 
+La file synchronisée est construite comme une bibliothéque avec un fichier
+interface \textit{file\_sync.h} et un fichier implementation
+\textit{file\_sync.c}.
+\subsection{file\_sync.h}
+Le module est composer de 4 fonction. Un fonction de création de la file
+synchronisée, un qui libére les ressources allouées à la file et 2 autre
+fonction pour ajouter
+et retirer des éléments de cette file.
+\subsection{file\_sync.c}
+Toutes les informations de la file tel que les sémaphores, le buffer et les têtes de lecture 
+et d'écriture sont conservées des un segment de mémoire partagé qui est conservées et
+initialisé
+
 \section{Lanceur}
 \end{document}
