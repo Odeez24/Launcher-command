@@ -12,3 +12,9 @@
 
 # Ignore JetBrains files
 .idea
+
+# Ignore all tool files latex
+*.aux
+*.toc
+*.log
+*.synctex.gz
