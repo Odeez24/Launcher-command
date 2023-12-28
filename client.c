@@ -27,7 +27,7 @@
 
 int main(const int argc, char **argv) {
     if (argc == 1) {
-        fprintf(stderr, "USAGE : client [cmd1]|[cmd2] |... |[cmdN]");
+        fprintf(stderr, "USAGE : client [cmd1]|[cmd2] |... |[cmdN]\n");
         return EXIT_SUCCESS;
     }
     char pid[PID_SIZE];
@@ -40,6 +40,7 @@ int main(const int argc, char **argv) {
     char pipe_name[(int) strlen(TUBE_CL) + pidlen];
     strcpy(pipe_name, TUBE_CL);
     strcat(pipe_name, pid);
+    //printf("%s\n", pipe_name);
     if (mkfifo(pipe_name, S_IWUSR | S_IRUSR) == -1) {
         perror("mkfifo");
         return EXIT_FAILURE;
@@ -64,14 +65,39 @@ int main(const int argc, char **argv) {
     char err_name[(int) strlen(TUBE_ERR) + pidlen];
     strcpy(err_name, TUBE_RES);
     strcat(err_name, pid);
-    if (open(std_name, O_RDONLY) == -1) {
+
+    int std_pipe;
+    int err_pipe;
+
+    if ((std_pipe = open(std_name, O_RDONLY) == -1)) {
         perror("open");
         return EXIT_FAILURE;
     }
-    if (open(err_name, O_RDONLY) == -1) {
+    if ((err_pipe = open(err_name, O_RDONLY) == -1)) {
         perror("open");
         return EXIT_FAILURE;
     }
+
+    if(dup2(std_pipe, STDOUT_FILENO) == -1){
+        perror("dup2");
+        return EXIT_FAILURE;
+    }
+
+    if(close(std_pipe) == -1) {
+        perror("close");
+        return EXIT_FAILURE;
+    }
+
+    if(dup2(err_pipe, STDERR_FILENO) == -1) {
+        perror("dup2");
+        return EXIT_FAILURE;
+    }
+
+    if(close(err_pipe) == -1) {
+        perror("close");
+        return EXIT_FAILURE;
+    }
+
     for (int k = 1; k < argc; k += 1) {
         if (write(fd_pipe, argv[k], strlen(argv[k])) == -1) {
             perror("write");
@@ -85,9 +111,7 @@ int main(const int argc, char **argv) {
         }
     }
 
-    // TODO
-
-    if( close(fd_pipe) == -1) {
+    if (close(fd_pipe) == -1) {
         perror("close");
         return EXIT_FAILURE;
     }
