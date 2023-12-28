@@ -22,8 +22,8 @@
 #define TUBE_RES "TUBE_RES_CLIENT_"
 #define TUBE_ERR "TUBE_ERR_CLIENT_"
 #define BUF_SIZE 4096
-#define CMD_SIZE 50
-#define PID_SIZE 51
+#define CMD_SIZE 64
+#define PID_SIZE 32
 
 //--- Outils pour les threads --------------------------------------------------
 /*
@@ -46,29 +46,29 @@ void mafct(int sig);
 
 //--- Main ---------------------------------------------------------------------
 int main(void) {
-  printf("%d\n", getpid());
   switch (fork()) {
     case -1:
       perror("fork");
       exit(EXIT_FAILURE);
     case 0:
-      if (setsid() < 0) {
-        perror("setsid");
-        exit(EXIT_FAILURE);
-      }
-      if (close(STDIN_FILENO) == -1) {
-        perror("close");
-        exit(EXIT_FAILURE);
-      }
-      if (close(STDOUT_FILENO) == -1) {
-        perror("close");
-        exit(EXIT_FAILURE);
-      }
-      if (close(STDERR_FILENO) == -1) {
-        perror("close");
-        exit(EXIT_FAILURE);
-      }
+      //if (setsid() < 0) {
+        //perror("setsid");
+        //exit(EXIT_FAILURE);
+      //}
+      //if (close(STDIN_FILENO) == -1) {
+        //perror("close");
+        //exit(EXIT_FAILURE);
+      //}
+      //if (close(STDOUT_FILENO) == -1) {
+        //perror("close");
+        //exit(EXIT_FAILURE);
+      //}
+      //if (close(STDERR_FILENO) == -1) {
+        //perror("close");
+        //exit(EXIT_FAILURE);
+      //}
       if (create_file_sync() == -1) {
+        perror("shm_open");
         exit(EXIT_FAILURE);
       }
       struct sigaction act;
@@ -107,6 +107,7 @@ void *run(struct my_thread_args *a) {
       exit(EXIT_FAILURE);
     case 0:
       {
+        int m = 0;
         int fd;
         char pid[PID_SIZE];
         int pidlen;
@@ -114,10 +115,14 @@ void *run(struct my_thread_args *a) {
             || pidlen > PID_SIZE - 1) {
           return NULL;
         }
-        pid[pidlen - 1] = '\0';
+        pid[pidlen] = '\0';
         char tube_cl[(int) strlen(TUBE_CL) + pidlen];
         strcpy(tube_cl, TUBE_CL);
         strcat(tube_cl, pid);
+        if ((fd = open(tube_cl, O_RDONLY)) == -1) {
+          perror("open");
+          exit(EXIT_FAILURE);
+        }
         char tube_res[(int) strlen(TUBE_RES) + pidlen];
         strcpy(tube_res, TUBE_RES);
         strcat(tube_res, pid);
@@ -132,24 +137,12 @@ void *run(struct my_thread_args *a) {
           perror("mkfifo");
           exit(EXIT_FAILURE);
         }
-        if (unlink(tube_res) == -1) {
-          perror("unlink");
-          exit(EXIT_FAILURE);
-        }
-        if (unlink(tube_err) == -1) {
-          perror("unlink");
-          exit(EXIT_FAILURE);
-        }
-        if ((fd = open(tube_cl, O_RDONLY)) == -1) {
-          perror("open");
-          exit(EXIT_FAILURE);
-        }
         char c;
         char buffer[BUF_SIZE];
         char cmd[CMD_SIZE];
         int nbarg = 0;
         int i = 0;
-        while (read(fd, &c, sizeof(char)) > 0) {
+        while (read(fd, &c, sizeof(char)) > 0 ) {
           buffer[i] = c;
           if (c == ' ') {
             ++nbarg;
@@ -192,6 +185,14 @@ void *run(struct my_thread_args *a) {
         }
         if ((fd_err = open(tube_err, O_WRONLY) == -1)) {
           perror("open");
+          exit(EXIT_FAILURE);
+        }
+                if (unlink(tube_res) == -1) {
+          perror("unlink");
+          exit(EXIT_FAILURE);
+        }
+        if (unlink(tube_err) == -1) {
+          perror("unlink");
           exit(EXIT_FAILURE);
         }
         if (dup2(fd_res, STDOUT_FILENO) == -1) {

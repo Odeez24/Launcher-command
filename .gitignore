@@ -23,3 +23,5 @@ rapport
 
 # Ignore all VSCcde files
 .vscode
+
+!makefile
