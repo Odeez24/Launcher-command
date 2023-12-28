@@ -107,7 +107,6 @@ void *run(struct my_thread_args *a) {
       exit(EXIT_FAILURE);
     case 0:
       {
-        int m = 0;
         int fd;
         char pid[PID_SIZE];
         int pidlen;
@@ -137,11 +136,46 @@ void *run(struct my_thread_args *a) {
           perror("mkfifo");
           exit(EXIT_FAILURE);
         }
+        int fd_res;
+        int fd_err;
+        if ((fd_res = open(tube_res, O_WRONLY) == -1)) {
+          perror("open");
+          exit(EXIT_FAILURE);
+        }
+        if ((fd_err = open(tube_err, O_WRONLY) == -1)) {
+          perror("open");
+          exit(EXIT_FAILURE);
+        }
+        if (unlink(tube_res) == -1) {
+          perror("unlink");
+          exit(EXIT_FAILURE);
+        }
+        if (unlink(tube_err) == -1) {
+          perror("unlink");
+          exit(EXIT_FAILURE);
+        }
+        if (dup2(fd_res, STDOUT_FILENO) == -1) {
+          perror("dup2");
+          exit(EXIT_FAILURE);
+        }
+        if (close(fd_res) == -1) {
+          perror("close");
+          exit(EXIT_FAILURE);
+        }
+        if (dup2(fd_err, STDERR_FILENO) == -1) {
+          perror("dup2");
+          exit(EXIT_FAILURE);
+        }
+        if (close(fd_err) == -1) {
+          perror("close");
+          exit(EXIT_FAILURE);
+        }
         char c;
         char buffer[BUF_SIZE];
         char cmd[CMD_SIZE];
         int nbarg = 0;
         int i = 0;
+        printf("TRACK 3\n");
         while (read(fd, &c, sizeof(char)) > 0 ) {
           buffer[i] = c;
           if (c == ' ') {
@@ -174,40 +208,6 @@ void *run(struct my_thread_args *a) {
         }
         opt[nbarg] = (char *) "NULL";
         if (close(fd) == -1) {
-          perror("close");
-          exit(EXIT_FAILURE);
-        }
-        int fd_res;
-        int fd_err;
-        if ((fd_res = open(tube_res, O_WRONLY) == -1)) {
-          perror("open");
-          exit(EXIT_FAILURE);
-        }
-        if ((fd_err = open(tube_err, O_WRONLY) == -1)) {
-          perror("open");
-          exit(EXIT_FAILURE);
-        }
-                if (unlink(tube_res) == -1) {
-          perror("unlink");
-          exit(EXIT_FAILURE);
-        }
-        if (unlink(tube_err) == -1) {
-          perror("unlink");
-          exit(EXIT_FAILURE);
-        }
-        if (dup2(fd_res, STDOUT_FILENO) == -1) {
-          perror("dup2");
-          exit(EXIT_FAILURE);
-        }
-        if (close(fd_res) == -1) {
-          perror("close");
-          exit(EXIT_FAILURE);
-        }
-        if (dup2(fd_err, STDERR_FILENO) == -1) {
-          perror("dup2");
-          exit(EXIT_FAILURE);
-        }
-        if (close(fd_err) == -1) {
           perror("close");
           exit(EXIT_FAILURE);
         }
