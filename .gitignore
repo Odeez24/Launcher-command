@@ -6,18 +6,22 @@
 
 # Unignore all dirs
 !*/
+!.*/
+
 
 # Ignore objects
 *.o
 
+# Ignore Makefile caches
+.\#makefile\#
+
 # Ignore JetBrains files
 .idea
 
-# Ignore all tool files latex
-*.aux
-*.toc
-*.log
-*.synctex.gz
-# Ignore all vsocde files
-*.json
-.\#makefile\#
+# Ignore all Latex files, expect source & rendered files
+rapport
+!rapport/*.pdf
+!rapport/*.tex
+
+# Ignore all VSCcde files
+.vscode
