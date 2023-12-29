@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <file_sync.h>
+#include <parseur.h>
 
 //--- Marco tubes ------------------------------------------------------
 
@@ -89,20 +90,15 @@ void *run(struct my_thread_args *a) {
       exit(EXIT_FAILURE);
     case 0:
       {
-
         /* TEMP */
-
-        int log = open("log", O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
-        if(log == -1){
-            exit(EXIT_FAILURE);
-        }
-
+        //int log = open("log", O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
+        //if (log == -1) {
+          //exit(EXIT_FAILURE);
+        //}
         /* FIN TEMP */
-
         int fd;
         int fd_res;
         int fd_err;
-
         char pid[PID_SIZE];
         int pidlen;
         if ((pidlen = snprintf(pid, PID_SIZE - 1, "%d", a->client)) < 0
@@ -111,58 +107,51 @@ void *run(struct my_thread_args *a) {
         }
         free(a);
         pid[pidlen] = '\0';
-        free(a);
-
         char tube_cl[(int) strlen(TUBE_CL) + pidlen];
         strcpy(tube_cl, TUBE_CL);
         strcat(tube_cl, pid);
-
+        if ((fd = open(tube_cl, O_RDONLY)) == -1) {
+          perror("open cl");
+          exit(EXIT_FAILURE);
+        }
         char tube_res[(int) strlen(TUBE_RES) + pidlen];
         strcpy(tube_res, TUBE_RES);
         strcat(tube_res, pid);
-
         char tube_err[(int) strlen(TUBE_ERR) + pidlen];
         strcpy(tube_err, TUBE_ERR);
         strcat(tube_err, pid);
-
-        if ((fd = open(tube_cl, O_RDONLY)) == -1) {
-          perror("open");
-          exit(EXIT_FAILURE);
-        }
         char c;
         char buffer[BUF_SIZE];
         int nbarg = 0;
         int i = 0;
-        while (read(fd, &c, sizeof(char)) > 0 ) {
+        while (read(fd, &c, sizeof(char)) > 0) {
           buffer[i] = c;
           if (c == ' ') {
             ++nbarg;
           }
           ++i;
         }
+        buffer[i] = '\0';
         if (close(fd) == -1) {
           perror("close");
           exit(EXIT_FAILURE);
         }
-
         if ((fd_res = open(tube_res, O_WRONLY)) == -1) {
-          perror("open");
+          perror("open res");
           exit(EXIT_FAILURE);
         }
         if ((fd_err = open(tube_err, O_WRONLY)) == -1) {
-          perror("open");
+          perror("open err");
           exit(EXIT_FAILURE);
         }
-        if (unlink(tube_res) == -1) {
-          perror("unlink");
-          exit(EXIT_FAILURE);
-        }
-
-        if (unlink(tube_err) == -1) {
-          perror("unlink");
-          exit(EXIT_FAILURE);
-        }
-
+        //if (unlink(tube_res) == -1) {
+          //perror("unlink");
+          //exit(EXIT_FAILURE);
+        //}
+        //if (unlink(tube_err) == -1) {
+          //perror("unlink");
+          //exit(EXIT_FAILURE);
+        //}
         if (dup2(fd_res, STDOUT_FILENO) == -1) {
           perror("dup2");
           exit(EXIT_FAILURE);
@@ -179,36 +168,15 @@ void *run(struct my_thread_args *a) {
           perror("close");
           exit(EXIT_FAILURE);
         }
-
-        buffer[i] = '\0';
-        char *opt[nbarg + 2];
-        char optp[nbarg + 2][BUF_SIZE]; // pas de matrice, mais des mallocs
-        int opt_i = 0;
-        int opt_i_i = 0;
-        opt[0] = optp[0];
-        i = 0;
-        write(log, "190 \n", strlen("XXX \n"));
-        while ((c = buffer[i]) != '\0') {
-          if (c == ' ') {
-              ++opt_i;
-              opt[opt_i] = optp[i];
-              opt_i_i = 0;
-          } else {
-            optp[opt_i][opt_i_i] = c;
-            ++opt_i_i;
-            }
-          ++i;
-        }
-        write(log, "202 \n", strlen("XXX \n"));
-        opt[nbarg + 1] = NULL;
-        for(int i = 0; i < nbarg + 1; i += 1){
-            write(log, opt[i], strlen(opt[i]));
-            write(log, "\n", 1);
-        }
-        write(log, "208 \n", strlen("XXX \n"));
+        char **opt = analyse_arg(buffer);
         execvp(opt[0], (char * const *) opt);
-        write(log, opt[0], strlen(opt[0]));
-        write(log, opt[1], strlen(opt[1]));
+        //if (write(log, opt[0], strlen(opt[0])) == -1) {
+          //exit(EXIT_FAILURE);
+        //}
+        //if (write(log, opt[1], strlen(opt[1])) == -1) {
+          //exit(EXIT_FAILURE);
+        //}
+        dispose_arg(opt);
         fprintf(stderr, "Error during the execution of the command.\n");
         exit(EXIT_FAILURE);
       }

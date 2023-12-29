@@ -13,27 +13,6 @@
 \maketitle
 \tableofcontents
 \newpage
-\section{Utilisation}
-Pour utiliser le projet il faut commencer par lancer le lanceur dans un
-terminal.
-\begin{figure}[H]
-  \centering
-  \begin{minted}[autogobble, bgcolor=lightgray, tabsize=2, fontsize=\small, escapeinside=||]{bash}
-      make lanceur
-      ./lanceur
-  \end{minted}
-  \caption{Appel au lanceur}
-\end{figure}
-Puis appeler le client
-
-Pour terminer le lanceur faut utiliser la commande:
-\begin{figure}[H]
-  \centering
-  \begin{minted}[autogobble, bgcolor=lightgray, tabsize=2, fontsize=\small, escapeinside=||]{bash}
-      killall -3 lanceur
-  \end{minted}
-  \caption{Terminaison du lanceur}
-\end{figure}
 \section{File synchronisée}
 La file synchronisée est construite comme une bibliothèque avec un fichier
 interface \textit{file\_sync.h} et un fichier implémentions.
@@ -56,6 +35,9 @@ puis pour la fonction \textit{destroy\_file} on détruit toutes les sémaphores
 puis on libère le segment de mémoire partagée. Pour les fonctions
 \textit{defiler} et \textit{enfiler}
 c'est un simple problème consommateur/producteur avec les sémaphores.
+\section{Parseur}
+Le module parsuer est une réutilisation du module \textit{analyse} donner lors du tp 2
+avec des tests rajoutée notament sur les malloc.
 \section{Lanceur de commande}
 Le nom des tubes est définis par une normes choisis qui s'applique
 entre le lanceur et le client. Cette norme veut que le nom d'un tube soit une
