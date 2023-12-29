@@ -11,10 +11,6 @@
 #define PID_SIZE 32
 #endif
 
-#ifndef PIPE_SIZE
-#define PIPE_SIZE 254
-#endif
-
 #ifndef BUF_SIZE
 #define BUF_SIZE 4096
 #endif

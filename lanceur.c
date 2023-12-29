@@ -93,7 +93,7 @@ void *run(struct my_thread_args *a) {
         /* TEMP */
         //int log = open("log", O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
         //if (log == -1) {
-          //exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
         //}
         /* FIN TEMP */
         int fd;
@@ -144,14 +144,6 @@ void *run(struct my_thread_args *a) {
           perror("open err");
           exit(EXIT_FAILURE);
         }
-        //if (unlink(tube_res) == -1) {
-          //perror("unlink");
-          //exit(EXIT_FAILURE);
-        //}
-        //if (unlink(tube_err) == -1) {
-          //perror("unlink");
-          //exit(EXIT_FAILURE);
-        //}
         if (dup2(fd_res, STDOUT_FILENO) == -1) {
           perror("dup2");
           exit(EXIT_FAILURE);
@@ -171,10 +163,10 @@ void *run(struct my_thread_args *a) {
         char **opt = analyse_arg(buffer);
         execvp(opt[0], (char * const *) opt);
         //if (write(log, opt[0], strlen(opt[0])) == -1) {
-          //exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
         //}
         //if (write(log, opt[1], strlen(opt[1])) == -1) {
-          //exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
         //}
         dispose_arg(opt);
         fprintf(stderr, "Error during the execution of the command.\n");
