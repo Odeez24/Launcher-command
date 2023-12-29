@@ -23,7 +23,8 @@ synchronisée, une qui libère les ressources allouées à la file et 2 autres
 fonctions pour ajouter
 ou retirer des éléments de cette file.
 \subsection{file\_sync.c}
-Toutes les informations de la file tel que les sémaphores, le buffer de données et les
+Toutes les informations de la file tel que les sémaphores, le buffer de données
+et les
 têtes de lecture
 et d'écriture sont conservées dans un segment de mémoire partagé qui est créer
 dans la fonction \textit{create\_file\_sync} avant l'initialisation des
@@ -36,7 +37,8 @@ puis on libère le segment de mémoire partagée. Pour les fonctions
 \textit{defiler} et \textit{enfiler}
 c'est un simple problème consommateur/producteur avec les sémaphores.
 \section{Parseur}
-Le module parsuer est une réutilisation du module \textit{analyse} donner lors du tp 2
+Le module parsuer est une réutilisation du module \textit{analyse} donner lors
+du tp 2
 avec des tests rajoutée notament sur les malloc.
 \section{Lanceur de commande}
 Le nom des tubes est définis par une normes choisis qui s'applique
@@ -44,23 +46,49 @@ entre le lanceur et le client. Cette norme veut que le nom d'un tube soit une
 chaîne de caractère qui
 définit l'utilité du tube suivit du pid du client afin que chaque client
 possède des tube qui lui sont propres.
+\subsection{Macroconstante}
 \begin{itemize}
-  \item TUBE\_CLIENT\_: est le tube dans lequel le client écrit les
-        informations
-        pour le lanceur, il est crée par le client.
-  \item TUBE\_RES\_CLIENT\_: est le tube dans lequel le resultat de la commande
-        sera ecrit et envoyé au client, il est crée par le lanceur.
-  \item TUBE\_ERR\_CLIENT\_: est le tube dans lequel une possible erreur lors
-        de l'exécution de la commande sera écrit et envoyé au client, il est
-        crée par le lanceur.
-  \item BUF\_SIZE: Taille maximale en nombre de caractère des commandes avec
-        leurs options.
-  \item CMD\_SIZE: Taille maximale en nombre de  du nom de la commande
-        (taille déterminer à partir du nombre de caractère de la plus grande
-        commande
-        linux avec une marge de sécurité).
-  \item PID\_SIZE: Taille maximale en nombre de caractère du pid du client.
+      \item TUBE\_CLIENT\_: est le tube dans lequel le client écrit les
+            informations
+            pour le lanceur, il est crée par le client.
+      \item TUBE\_RES\_CLIENT\_: est le tube dans lequel le resultat de la
+            commande
+            sera ecrit et envoyé au client, il est crée par le lanceur.
+      \item TUBE\_ERR\_CLIENT\_: est le tube dans lequel une possible erreur
+            lors
+            de l'exécution de la commande sera écrit et envoyé au client, il
+            est
+            crée par le lanceur.
+      \item BUF\_SIZE: Taille maximale en nombre de caractère des commandes
+            avec
+            leurs options.
+      \item CMD\_SIZE: Taille maximale en nombre de  du nom de la commande
+            (taille déterminer à partir du nombre de caractère de la plus
+            grande
+            commande
+            linux avec une marge de sécurité).
+      \item PID\_SIZE: Taille maximale en nombre de caractère du pid du client.
 \end{itemize}
+La structure \textit{my\_thread\_args} contient tous les arguments à
+transmettre au thread.
+\subsection{main}
+Nous commençons par faire du lanceur un deamon. Puis on s'occupe de la gestion
+du signal pour
+terminer le lanceur.
+Le principe du main est de créer un thread pour chaque demande d'éxécution de
+commande qui est représenter par le défilement du pid du client faisant la
+demande d'éxécution.
+\subsection{run}
+La fonction de lancement du thread ouvre les 3 tubes lui permettant de
+comuniquer
+avec le client. Puis lit les informations donner par le client sur le tube
+prévu
+à cette effet. Ensuite on redirige les 2 sortie standart vers les 2 tubes
+ouvert en écritures. On peut ensuite appeller la fonction \textit{parseur\_arg}
+du module \textit{parseur} afin de récupérer la commande ainsi que chaque
+option de celle-ci. On fini par utiliser la fonction \textit{execvp} afin
+d'éxécuter la commande demander.
+
 \section{Client}
 
 \end{document}

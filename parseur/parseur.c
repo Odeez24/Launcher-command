@@ -7,7 +7,7 @@
 
 #include "parseur.h"
 
-char **analyse_arg(const char arg[]) {
+char **parseur_arg(const char arg[]) {
   // On saute les espaces en début
   const char* parg = arg;
   while (*parg == ' ') {

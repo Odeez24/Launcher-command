@@ -39,9 +39,6 @@ void *run(struct my_thread_args *a);
 // Type de la fonction de lancement du thread
 typedef void *(*start_routine_type)(void *);
 
-//--- Outils pour les signaux --------------------------------------------------
-int nbth = 0;
-
 //  mafct: fonction de gestion des signaux
 void mafct(int sig);
 
@@ -52,29 +49,32 @@ int main(void) {
       perror("fork");
       return EXIT_FAILURE;
     case 0:
+      if (setsid() == -1){
+        perror("setsid");
+        exit(EXIT_FAILURE);
+      }
       if (create_file_sync() == -1) {
         perror("shm_open");
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
       }
       struct sigaction act;
       act.sa_handler = mafct;
       act.sa_flags = 0;
       sigemptyset(&act.sa_mask);
       if (sigaction(SIGTERM, &act, NULL) != 0) {
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
       }
       pid_t p;
       while ((p = defiler()) != -1) {
         pthread_t th;
         struct my_thread_args *a = malloc(sizeof(struct my_thread_args));
         if (a == NULL) {
-          return EXIT_FAILURE;
+          exit(EXIT_FAILURE);
         }
         a->client = p;
         if (pthread_create(&th, NULL, (start_routine_type) run, a) != 0) {
           exit(EXIT_FAILURE);
         }
-        ++nbth;
       }
       break;
     default:
@@ -160,7 +160,7 @@ void *run(struct my_thread_args *a) {
           perror("close");
           exit(EXIT_FAILURE);
         }
-        char **opt = analyse_arg(buffer);
+        char **opt = parseur_arg(buffer);
         execvp(opt[0], (char * const *) opt);
         //if (write(log, opt[0], strlen(opt[0])) == -1) {
         //exit(EXIT_FAILURE);

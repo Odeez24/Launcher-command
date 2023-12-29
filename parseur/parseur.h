@@ -11,7 +11,7 @@
  * après utilisation à l'aide de la fonction dispose_arg. Retourne NULL en cas
  * d'erreur
  */
-char **analyse_arg(const char arg[]);
+char **parseur_arg(const char arg[]);
 
 /**
  * Permet de libérer la mémoire occupée par le tableau retourné par
