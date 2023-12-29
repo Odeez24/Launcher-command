@@ -49,27 +49,27 @@ int main(void) {
   switch (fork()) {
     case -1:
       perror("fork");
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     case 0:
       //if (setsid() < 0) {
         //perror("setsid");
-        //exit(EXIT_FAILURE);
+        //return EXIT_FAILURE;
       //}
       //if (close(STDIN_FILENO) == -1) {
         //perror("close");
-        //exit(EXIT_FAILURE);
+        //return EXIT_FAILURE;
       //}
       //if (close(STDOUT_FILENO) == -1) {
         //perror("close");
-        //exit(EXIT_FAILURE);
+        //return EXIT_FAILURE;
       //}
       //if (close(STDERR_FILENO) == -1) {
         //perror("close");
-        //exit(EXIT_FAILURE);
+        //return EXIT_FAILURE;
       //}
       if (create_file_sync() == -1) {
         perror("shm_open");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
       }
       struct sigaction act;
       act.sa_handler = mafct;
@@ -79,17 +79,15 @@ int main(void) {
         return EXIT_FAILURE;
       }
       pid_t p;
-      int errnum;
       while ((p = defiler()) != -1) {
         pthread_t th;
         struct my_thread_args *a = malloc(sizeof(struct my_thread_args));
         if (a == NULL) {
-          exit(EXIT_FAILURE);
+          return EXIT_FAILURE;
         }
         a->client = p;
-        if ((errnum
-              = pthread_create(&th, NULL, (start_routine_type) run, a)) != 0) {
-          exit(EXIT_FAILURE);
+        if (pthread_create(&th, NULL, (start_routine_type) run, a) != 0) {
+          return EXIT_FAILURE;
         }
         ++nbth;
       }
@@ -114,14 +112,11 @@ void *run(struct my_thread_args *a) {
             || pidlen > PID_SIZE - 1) {
           return NULL;
         }
+        free(a);
         pid[pidlen] = '\0';
         char tube_cl[(int) strlen(TUBE_CL) + pidlen];
         strcpy(tube_cl, TUBE_CL);
         strcat(tube_cl, pid);
-        if ((fd = open(tube_cl, O_RDONLY)) == -1) {
-          perror("open");
-          exit(EXIT_FAILURE);
-        }
         char tube_res[(int) strlen(TUBE_RES) + pidlen];
         strcpy(tube_res, TUBE_RES);
         strcat(tube_res, pid);
@@ -136,6 +131,10 @@ void *run(struct my_thread_args *a) {
           perror("mkfifo");
           exit(EXIT_FAILURE);
         }
+        if ((fd = open(tube_cl, O_RDONLY)) == -1) {
+          perror("open");
+          exit(EXIT_FAILURE);
+        }
         int fd_res;
         int fd_err;
         if ((fd_res = open(tube_res, O_WRONLY) == -1)) {
@@ -146,6 +145,22 @@ void *run(struct my_thread_args *a) {
           perror("open");
           exit(EXIT_FAILURE);
         }
+        if (dup2(fd_res, STDOUT_FILENO) == -1) {
+          perror("dup2");
+          exit(EXIT_FAILURE);
+        }
+        if (dup2(fd_err, STDERR_FILENO) == -1) {
+          perror("dup2");
+          exit(EXIT_FAILURE);
+        }
+        if (close(fd_res) == -1) {
+          perror("close");
+          exit(EXIT_FAILURE);
+        }
+        if (close(fd_err) == -1) {
+          perror("close");
+          exit(EXIT_FAILURE);
+        }
         if (unlink(tube_res) == -1) {
           perror("unlink");
           exit(EXIT_FAILURE);
@@ -154,28 +169,11 @@ void *run(struct my_thread_args *a) {
           perror("unlink");
           exit(EXIT_FAILURE);
         }
-        if (dup2(fd_res, STDOUT_FILENO) == -1) {
-          perror("dup2");
-          exit(EXIT_FAILURE);
-        }
-        if (close(fd_res) == -1) {
-          perror("close");
-          exit(EXIT_FAILURE);
-        }
-        if (dup2(fd_err, STDERR_FILENO) == -1) {
-          perror("dup2");
-          exit(EXIT_FAILURE);
-        }
-        if (close(fd_err) == -1) {
-          perror("close");
-          exit(EXIT_FAILURE);
-        }
         char c;
         char buffer[BUF_SIZE];
         char cmd[CMD_SIZE];
         int nbarg = 0;
         int i = 0;
-        printf("TRACK 3\n");
         while (read(fd, &c, sizeof(char)) > 0 ) {
           buffer[i] = c;
           if (c == ' ') {
@@ -226,12 +224,12 @@ void *run(struct my_thread_args *a) {
 
 void mafct(int sig) {
   if (sig == SIGQUIT) {
+    if (destroy_file() == -1) {
+      fprintf(stderr, "Errors during destroy_file\n");
+      exit(EXIT_FAILURE);
+    }
     for (int i = 0; i < nbth; ++i) {
       pthread_exit(NULL);
-    }
-    if (destroy_file() == -1) {
-      fprintf(stderr, "Error during destroy_file\n");
-      exit(EXIT_FAILURE);
     }
   }
 }

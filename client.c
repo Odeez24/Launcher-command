@@ -15,7 +15,6 @@
 #define PIPE_SIZE 254
 #endif
 
-
 #include <fcntl.h>
 
 #include "file_sync.h"
@@ -26,95 +25,84 @@
 #include <sys/stat.h>
 
 int main(const int argc, char **argv) {
-    if (argc == 1) {
-        fprintf(stderr, "USAGE : client [cmd1]|[cmd2] |... |[cmdN]\n");
-        return EXIT_SUCCESS;
-    }
-    char pid[PID_SIZE];
-    int pidlen;
-    if ((pidlen = snprintf(pid, PID_SIZE - 1, "%d", getpid())) < 0
-        || pidlen > PID_SIZE - 1) {
-        return EXIT_FAILURE;
-    }
-    pid[pidlen] = '\0';
-    char pipe_name[(int) strlen(TUBE_CL) + pidlen];
-    strcpy(pipe_name, TUBE_CL);
-    strcat(pipe_name, pid);
-    //printf("%s\n", pipe_name);
-    if (mkfifo(pipe_name, S_IWUSR | S_IRUSR) == -1) {
-        perror("mkfifo");
-        return EXIT_FAILURE;
-    }
-    if (enfiler(getpid()) == -1) {
-        fprintf(stderr, "%s : Impossible d'enfiler la valeur.\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-    const int fd_pipe = open(pipe_name, O_WRONLY);
-    if (fd_pipe == -1) {
-        perror("open");
-        return EXIT_FAILURE;
-    }
-    if (unlink(pipe_name) == -1) {
-        perror("unlink");
-        return EXIT_FAILURE;
-    }
-    char std_name[(int) strlen(TUBE_RES) + pidlen];
-    strcpy(std_name, TUBE_RES);
-    strcat(std_name, pid);
-
-    char err_name[(int) strlen(TUBE_ERR) + pidlen];
-    strcpy(err_name, TUBE_RES);
-    strcat(err_name, pid);
-
-    int std_pipe;
-    int err_pipe;
-
-    if ((std_pipe = open(std_name, O_RDONLY) == -1)) {
-        perror("open");
-        return EXIT_FAILURE;
-    }
-    if ((err_pipe = open(err_name, O_RDONLY) == -1)) {
-        perror("open");
-        return EXIT_FAILURE;
-    }
-
-    if(dup2(std_pipe, STDOUT_FILENO) == -1){
-        perror("dup2");
-        return EXIT_FAILURE;
-    }
-
-    if(close(std_pipe) == -1) {
-        perror("close");
-        return EXIT_FAILURE;
-    }
-
-    if(dup2(err_pipe, STDERR_FILENO) == -1) {
-        perror("dup2");
-        return EXIT_FAILURE;
-    }
-
-    if(close(err_pipe) == -1) {
-        perror("close");
-        return EXIT_FAILURE;
-    }
-
-    for (int k = 1; k < argc; k += 1) {
-        if (write(fd_pipe, argv[k], strlen(argv[k])) == -1) {
-            perror("write");
-            return EXIT_FAILURE;
-        }
-        if (k < argc - 1) {
-            if (write(fd_pipe, " ", 1) == -1) {
-                perror("write");
-                return EXIT_FAILURE;
-            }
-        }
-    }
-
-    if (close(fd_pipe) == -1) {
-        perror("close");
-        return EXIT_FAILURE;
-    }
-
+  if (argc == 1) {
+    fprintf(stderr, "USAGE : client [cmd1]|[cmd2] |... |[cmdN]\n");
     return EXIT_SUCCESS;
+  }
+  char pid[PID_SIZE];
+  int pidlen;
+  if ((pidlen = snprintf(pid, PID_SIZE - 1, "%d", getpid())) < 0
+      || pidlen > PID_SIZE - 1) {
+    return EXIT_FAILURE;
+  }
+  pid[pidlen] = '\0';
+  char pipe_name[(int) strlen(TUBE_CL) + pidlen];
+  strcpy(pipe_name, TUBE_CL);
+  strcat(pipe_name, pid);
+  if (mkfifo(pipe_name, S_IWUSR | S_IRUSR) == -1) {
+    perror("mkfifo");
+    return EXIT_FAILURE;
+  }
+  if (enfiler(getpid()) == -1) {
+    fprintf(stderr, "%s : Impossible d'enfiler la valeur.\n", argv[0]);
+    return EXIT_FAILURE;
+  }
+  const int fd_pipe = open(pipe_name, O_WRONLY);
+  if (fd_pipe == -1) {
+    perror("open");
+    return EXIT_FAILURE;
+  }
+  if (unlink(pipe_name) == -1) {
+    perror("unlink");
+    return EXIT_FAILURE;
+  }
+  char std_name[(int) strlen(TUBE_RES) + pidlen];
+  strcpy(std_name, TUBE_RES);
+  strcat(std_name, pid);
+  char err_name[(int) strlen(TUBE_ERR) + pidlen];
+  strcpy(err_name, TUBE_ERR);
+  strcat(err_name, pid);
+  int std_pipe;
+  int err_pipe;
+  if ((std_pipe = open(std_name, O_RDONLY) == -1)) {
+    perror("open");
+    return EXIT_FAILURE;
+  }
+  if (dup2(std_pipe, STDOUT_FILENO) == -1) {
+    perror("dup2");
+    return EXIT_FAILURE;
+  }
+  if (close(std_pipe) == -1) {
+    perror("close");
+    return EXIT_FAILURE;
+  }
+  if ((err_pipe = open(err_name, O_RDONLY) == -1)) {
+    perror("open");
+    return EXIT_FAILURE;
+  }
+  if (dup2(err_pipe, STDERR_FILENO) == -1) {
+    perror("dup2");
+    return EXIT_FAILURE;
+  }
+  if (close(err_pipe) == -1) {
+    perror("close");
+    return EXIT_FAILURE;
+  }
+  for (int k = 1; k < argc; k += 1) {
+    if (write(fd_pipe, argv[k], strlen(argv[k])) == -1) {
+      perror("write");
+      return EXIT_FAILURE;
+    }
+    if (k < argc - 1) {
+      if (write(fd_pipe, " ", 1) == -1) {
+        perror("write");
+        return EXIT_FAILURE;
+      }
+    }
+  }
+  if (close(fd_pipe) == -1) {
+    perror("close");
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }
