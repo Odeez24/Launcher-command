@@ -10,220 +10,337 @@
 \author{Leroy Florent et Salles Théo}
 \date{Décembre 2023}
 \begin{document}
-    \begin{titlepage}
-        \vspace*{\stretch{1}}
-        \begin{center}
+\begin{titlepage}
+    \vspace*{\stretch{1}}
+    \begin{center}
         {\large\bfseries Rapport de projet \\[1ex]}
-        {\huge\bfseries Introduction aux \\[0.25ex] Systèmes d'Exploitation \\[2ex]}
+        {\huge\bfseries Introduction aux \\[0.25ex] Systèmes d'Exploitation
+            \\[2ex]}
         {\LARGE\bfseries Lanceur de commandes \\[6.5ex]}
         {\large\bfseries LEROY Florent et SALLES Théo \\}
-            \vspace{4ex}
-            Rapport rédigé pour\\[5pt]
-            \textit{Université de Rouen Normandie}\\[2cm]
-            \textsc{\large Informatique}\\[12ex]
-            \vfill
-            Département d'informatique\\
-            \vfill
-            Décembre 2023
-        \end{center}
-        \vspace{\stretch{2}}
-    \end{titlepage}
-    \newpage
-    \tableofcontents
-    \newpage
-
-
-    \section{Introduction}
-    L'objectif de ce projet est de créer un lanceur de commandes dont les commandes à exécuter sont passés à l'aide d'un client. De plus, le client permet à l'utilisateur d'interagir directement avec les programmes exécutés. Le tout prenant en compte le fait que plusieurs clients peuvent envoyer ces commandes simultanément.
-
-    Ce projet se divise donc en 3 parties principales :
-    \begin{itemize}
-        \item La file synchronisée, qui doit servir de stockage et de traitement des demandes d'exécutions commun aux clients et au lanceur de commandes, tout en gérant de manière synchrone l'enfilement et le défilement de données, à l'aide de sémaphores;
-        \item Le client, qui doit traiter les demandes de l'utilisateur, créer les tubes servant d'entrées et de sorties standards à la commande et enfiler la demande d'exécution de commande dans la file;
-        \item Le lanceur de commandes en lui-même, qui, à partir d'une demande de commande issu d'une file, modifie ses entrées et sorties standards pour correspondre aux tubes cités ci-dessus et exécuter la commande dans un nouveau thread.
-    \end{itemize}
-
-
-    \section{Manuel d'utilisation}
-
-    Pour utiliser le code réalisé dans ce projet correctement, les étapes suivantes doivent être suivies rigoureusement et dans l'ordre.
-
-    Tout comportement non prévu issu du mauvais suivi de ces instructions ne sont pas de notre responsabilité. De plus, les conséquences issus de ces comportement sont entièrement de la faute de l'utilisateur.
-
-    \begin{enumerate}
-        \item Récupérer toutes les dépendances de ce projet ( \texttt{gcc}, \texttt{make} )
-        \item Compiler les deux parties du code
-        \begin{enumerate}
-            \item Pour compiler le lanceur, exécuter la commande suivante : \begin{center}
-                                                                                \texttt{make lanceur}
-            \end{center}
-            \item Pour compiler le client, exécuter la commande suivante : \begin{center}
-                                                                               \texttt{make client}
-            \end{center}
-        \end{enumerate}
-        \item Exécuter le lanceur avec la commande suivante : \begin{center}
-                                                                  \texttt{./lanceur}
-        \end{center}
-        \item Envoyer une commande au lanceur à partir du lanceur avec la commande suivante ( remplacer les "\textbf{[CMDX]}" par les commandes à exécuter) : \begin{center}
-                                                                                                                                                                  \texttt{./client [CMD1] | ... | [CMDN]}
-        \end{center}
-        Il est bon de remarqur que le client affichera la syntaxe attendue si exécuté avec aucun argument.
-        \item Pour fermer le lanceur, deux possibilités :
-        \begin{itemize}
-            \item Récupérer le PID du lanceur avec la commande \texttt{ps} puis le tuer avec la commande \texttt{kill [PID]}
-            \item Tuer toutes les instances du lanceur avec la commande \texttt{killall lanceur}
-        \end{itemize}
-    \end{enumerate}
-
-
-    \section{File synchronisée}
-    Notre implémentation des files synchronisées est utilisable à partir d'une bibliothèque \texttt{file\_sync}.
-
-    Son fonctionnement se base sur l'utilisation d'un mutex pour éviter l'édition de la pile par un processus alors que celle-ci est activement utilisée par d'autres processus. Nous pouvons aussi remarquer que l'implémentation utilise l'algorithme solvant le problème du producteur/consommateur, c'est-à-dire que tout défilement sur une pile vide ou enfilement dans une file pleine provoquera un blocage, à l'aide d'une paire de sémaphores.
-
-    De plus, pour permettre à chaque acteur (clients, lanceur, ...) d'accéder à la file, et cela dans n'importe quelle situation (par exemple, en imaginant que chaque acteur possède un répertoire actif différent) nous devons la placer dans un segment de mémoire partagée, ce qui insinue que notre bibliothèque doit permettre à l'utilisateur de gérer (créer, détruire) ces segments de mémoire partagée.
-
-    Enfin, dans notre implémentation actuelle, nous avons codé la file de manière à ce qu'elle puisse stocker des identifiants de processus (codée en C sous forme de \texttt{pid\_t}, type synonyme au type \texttt{signed int} sous Linux).
-
-    La bibliothèque \texttt{file\_sync} offre l'accès aux fonctions suivantes :
-
-    \subsection{\texttt{create\_file\_sync}}
-
-    \begin{center}
-        \texttt{int create\_file\_sync(void)}
+        \vspace{4ex}
+        Rapport rédigé pour\\[5pt]
+        \textit{Université de Rouen Normandie}\\[2cm]
+        \textsc{\large Informatique}\\[12ex]
+        \vfill
+        Département d'informatique\\
+        \vfill
+        Décembre 2023
     \end{center}
+    \vspace{\stretch{2}}
+\end{titlepage}
+\newpage
+\tableofcontents
+\newpage
 
-    Cette fonction crée une file synchronisée et de la stocker dans une zone mémoire partagée. Cette zone mémoire sera nommée selon la macroconstante \texttt{NOM\_SHM}.
-    Renvoie \texttt{-1} en cas d'erreur, \texttt{0} sinon. Les erreurs peuvent être causées par :
-    \begin{itemize}
-        \item L'existence d'un segment de mémoire partagée ayant pour nom \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si, lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été supprimée correctement);
-        \item Un manque d'espace suffisant pour créer le segment;
-        \item Une erreur lors de la création des sémaphores.
-    \end{itemize}
+\section{Introduction}
+L'objectif de ce projet est de créer un lanceur de commandes dont les
+commandes à exécuter sont passés à l'aide d'un client. De plus, le client
+permet à l'utilisateur d'interagir directement avec les programmes exécutés. Le
+tout prenant en compte le fait que plusieurs clients peuvent envoyer ces
+commandes simultanément.
 
-    \subsection{\texttt{destroy\_file}}
-    \begin{center}
-        \texttt{int destroy\_file(void)}
-    \end{center}
+Ce projet se divise donc en 3 parties principales :
+\begin{itemize}
+    \item La file synchronisée, qui doit servir de stockage et de
+          traitement des demandes d'exécutions commun aux clients et au lanceur de
+          commandes, tout en gérant de manière synchrone l'enfilement et le défilement de
+          données, à l'aide de sémaphores;
+    \item Le client, qui doit traiter les demandes de l'utilisateur, créer
+          les tubes servant d'entrées et de sorties standards à la commande et enfiler la
+          demande d'exécution de commande dans la file;
+    \item Le lanceur de commandes en lui-même, qui, à partir d'une demande
+          de commande issu d'une file, modifie ses entrées et sorties standards pour
+          correspondre aux tubes cités ci-dessus et exécuter la commande dans un nouveau
+          thread.
+\end{itemize}
 
-    Cette fonction supprime la file précédemment crée portant le nom \texttt{NOM\_SHM} et libère les ressources associées.
-    Renvoie \texttt{-1} en cas d'erreur, \texttt{0} sinon. Les erreurs peuvent être causées par :
-    \begin{itemize}
-        \item L'absence d'un segment de mémoire partagée ayant pour nom \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si, lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été créé correctement);
-        \item Une erreur lors de la destruction des sémaphores.
-    \end{itemize}
+\section{Manuel d'utilisation}
 
-    \subsection{\texttt{enfiler}}
-    \begin{center}
-        \texttt{int enfiler(pid\_t donnee)}
-    \end{center}
+Pour utiliser le code réalisé dans ce projet correctement, les étapes
+suivantes doivent être suivies rigoureusement et dans l'ordre.
 
-    Cette fonction enfile un identifiant de processus \texttt{donnee} dans la file synchronisée. Si la file est pleine et/ou en cours d'utilisation, l'appel sera bloquant jusqu'à ce que la file soit défilée au moins une fois et/ou que la file soit libre/inutilisée.
-    Renvoie \texttt{-1} en cas d'erreur, \texttt{0} sinon. Les erreurs peuvent être causées par :
-    \begin{itemize}
-        \item L'absence d'un segment de mémoire partagée ayant pour nom \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si, lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été créé correctement);
-        \item Une erreur lors de l'édition d'un des sémaphores.
-    \end{itemize}
+Tout comportement non prévu issu du mauvais suivi de ces instructions ne
+sont pas de notre responsabilité. De plus, les conséquences issus de ces
+comportement sont entièrement de la faute de l'utilisateur.
 
-    \subsection{\texttt{defiler}}
-    \begin{center}
-        \texttt{pid\_t defiler(void)}
-    \end{center}
+\begin{enumerate}
+    \item Récupérer toutes les dépendances de ce projet ( \texttt{gcc},
+          \texttt{make} )
+    \item Compiler les deux parties du code
+          \begin{enumerate}
+              \item Pour compiler le lanceur, exécuter la commande suivante :
+                    \begin{center}
 
-    Cette fonction défile depuis la file synchronisée un identifiant de processus et la renvoie. Si la file est vide et/ou en cours d'utilisation, l'appel sera bloquant jusqu'à ce que la file soit enfilée au moins une fois et/ou que la file soit libre/inutilisée.
-    Renvoie \texttt{(pid\_t) -1} en cas d'erreur, l'identifiant défilé sinon. Les erreurs peuvent être causées par :
-    \begin{itemize}
-        \item L'absence d'un segment de mémoire partagée ayant pour nom \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si, lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été créé correctement);
-        \item Une erreur lors de l'édition d'un des sémaphores.
-    \end{itemize}
+                        \texttt{make lanceur}
+                    \end{center}
+              \item Pour compiler le client, exécuter la commande suivante :
+                    \begin{center}
 
+                        \texttt{make client}
+                    \end{center}
+          \end{enumerate}
+    \item Exécuter le lanceur avec la commande suivante : \begin{center}
 
-    \section{Parseur}
-    Le module parseur est une réutilisation du module \texttt{analyse} donnée lors
-    du TP 2 qui contient ces deux fonctions.
+              \texttt{./lanceur}
+          \end{center}
+    \item Envoyer une commande au lanceur à partir du lanceur avec la
+          commande suivante ( remplacer les "\textbf{[CMDX]}" par les commandes à
+          exécuter) : \begin{center}
 
-    \begin{itemize}
-        \item \texttt{char **parseur\_arg(const char arg[])} : Prend une chaîne de caractère \texttt{arg} et la découpe en chaîne de caractère distincts selon les espaces.
+              \texttt{./client [CMD1] | ... | [CMDN]}
+          \end{center}
+          Il est bon de remarqur que le client affichera la syntaxe attendue si
+          exécuté avec aucun argument.
+    \item Pour fermer le lanceur, deux possibilités :
+          \begin{itemize}
+              \item Récupérer le PID du lanceur avec la commande \texttt{ps} puis
+                    le tuer avec la commande \texttt{kill [PID]}
+              \item Tuer toutes les instances du lanceur avec la commande
+                    \texttt{killall lanceur}
+          \end{itemize}
+\end{enumerate}
 
-        \item \texttt{void dispose\_arg(char *argv[])}: Libère les ressources allouées pour le tableau retourné par \texttt{parseur\_arg}.
-    \end{itemize}
-    Les fonctions n'ont uniquement subi comme modification des test rajoutés sur les \texttt{malloc}.
+\section{File synchronisée}
+Notre implémentation des files synchronisées est utilisable à partir d'une
+bibliothèque \texttt{file\_sync}.
 
+Son fonctionnement se base sur l'utilisation d'un mutex pour éviter
+l'édition de la pile par un processus alors que celle-ci est activement
+utilisée par d'autres processus. Nous pouvons aussi remarquer que
+l'implémentation utilise l'algorithme solvant le problème du
+producteur/consommateur, c'est-à-dire que tout défilement sur une pile vide ou
+enfilement dans une file pleine provoquera un blocage, à l'aide d'une paire de
+sémaphores.
 
-    \section{Lanceur de commande}
-    Le nom des tubes est défini par une norme choisie commune aux clients et au lanceur. Cette norme veut que le nom d'un tube soit une chaîne de caractère qui définit l'utilité du tube suivit du PID du client afin que chaque client
-    possède des tube qui lui soient propres. Tout les tubes sont créés par le client.
+De plus, pour permettre à chaque acteur (clients, lanceur, ...) d'accéder à
+la file, et cela dans n'importe quelle situation (par exemple, en imaginant que
+chaque acteur possède un répertoire actif différent) nous devons la placer dans
+un segment de mémoire partagée, ce qui insinue que notre bibliothèque doit
+permettre à l'utilisateur de gérer (créer, détruire) ces segments de mémoire
+partagée.
 
-    \subsection{Macroconstantes}
-    \begin{itemize}
-        \item \texttt{TUBE\_CL}: préfixe du tube dans lequel le client écrit les
-        informations pour le lanceur.
-        \item \texttt{TUBE\_RES}: préfixe du tube dans lequel le résultat de la
-        commande sera écrit et envoyé au client.
-        \item \texttt{TUBE\_ERR}: préfixe du tube dans lequel une possible erreur
-        lors de l'exécution de la commande sera écrit et envoyé au client.
-        \item \texttt{BUF\_SIZE}: Taille maximale en nombre de caractère des commandes
-        avec leurs options.
-        \item \texttt{CMD\_SIZE}: Taille maximale en nombre de du nom de la commande
-        (taille déterminer à partir du nombre de caractère de la plus
-        grande commande linux avec une marge de sécurité).
-        \item \texttt{PID\_SIZE}: Taille maximale en nombre de caractère du pid du client.
-    \end{itemize}
+Enfin, dans notre implémentation actuelle, nous avons codé la file de
+manière à ce qu'elle puisse stocker des identifiants de processus (codée en C
+sous forme de \texttt{pid\_t}, type synonyme au type \texttt{signed int} sous
+Linux).
 
-    \subsection{Structure \texttt{my\_thread\_args}}
-    La structure \texttt{my\_thread\_args} contient tous les arguments à
-    transmettre au thread.
-    Il est à noter qu'avec notre implémentation actuelle, seul le PID du cilent est transmis. Cette structure est codée de telle manière à faciliter l'amélioration du code, permettant d'ajouter aisément de nouveaux éléments utiles aux threads.
+La bibliothèque \texttt{file\_sync} offre l'accès aux fonctions suivantes :
 
-    \subsection{Bloc \texttt{main}}
-    Le principe du \texttt{main} est de créer un thread pour chaque demande d'exécution de
-    commande.
-    Nous commençons par faire du lanceur un deamon, pour cela nous faisons un processus fils (avec un \texttt{fork}) dans lequel on le dissocie de la session avec la fonction \texttt{setsid}.
-    Puis on s'occupe de la gestion du signal pour terminer le lanceur. En effet, comme le lanceur est un daemon, l'utilisateur va devoir lui envoyer un signal pour l'arrêter. On admet ici que l'utilisateur utilisera les commandes \texttt{kill  [PID]} ou \texttt{killall [NOM]} pour arrêter le lanceur. Comme ces commandes envoient le signal \texttt{SIGTERM} par défaut, nous devons associer la réception de ce signal avec :
-    \begin{itemize}
-        \item La destruction de la file synchronisée avec la fonction \texttt{destroy\_file}
-        \item La fermeture du programme en lui-même.
-    \end{itemize}
+\subsection{\texttt{create\_file\_sync}}
 
-    Ensuite, tant que nous pouvons défiler un PID depuis la file synchronisée, on crée un thread dans lequel on passe comme argument le PID du client.
+\begin{center}
+    \texttt{int create\_file\_sync(void)}
+\end{center}
 
-    \subsection{Fonction \texttt{run}}
-    La fonction de lancement du thread crée un fils dans lequel on ouvre les 3
-    tubes lui permettant de communiquer avec le client. Puis il lit les informations donné par le client sur le tube prévu à cette effet. Ensuite on redirige les deux sorties standards (\texttt{stdout} et \texttt{stderr}) vers les deux tubes ouverts en écriture. On peut ensuite appeler la fonction \texttt{parseur\_arg} du module \texttt{parseur} afin de récupérer la commande ainsi que chaque option de celle-ci. On finit par utiliser la fonction \texttt{execvp} afin d'exécuter la commande demandée. Le père lui ne fait que attendre son fils afin
-    de libérer les ressources proprement.
+Cette fonction crée une file synchronisée et de la stocker dans une zone
+mémoire partagée. Cette zone mémoire sera nommée selon la macroconstante
+\texttt{NOM\_SHM}.
+Renvoie \texttt{-1} en cas d'erreur, \texttt{0} sinon. Les erreurs peuvent
+être causées par :
+\begin{itemize}
+    \item L'existence d'un segment de mémoire partagée ayant pour nom
+          \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si,
+          lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été
+          supprimée correctement);
+    \item Un manque d'espace suffisant pour créer le segment;
+    \item Une erreur lors de la création des sémaphores.
+\end{itemize}
 
+\subsection{\texttt{destroy\_file}}
+\begin{center}
+    \texttt{int destroy\_file(void)}
+\end{center}
 
-    \section{Client}
-    L'objectif du client est de faire parvenir au lanceur toutes les informations transmises par l'utilisateur à travers les arguments passés lors de son appel. Ces informations sont passées par deux canaux différents :
-    \begin{itemize}
-        \item L'envoi du PID du client au lanceur se fait à travers la file synchronisée;
-        \item L'envoi de la commande à exécuter par le lanceur se fait à travers le tube portant le nom \texttt{TUBE\_CL}
-    \end{itemize}
-    On commence par générer le nom des tubes avant de créer ces tubes. Ensuite on
-    envoie le PID du client dans la file afin que le lanceur puisse ouvrir les tubes.
-    Maintenant on ouvre le tube de communication entre le client et le lanceur
-    et on y écrit la commande à exécuter.
-    Nous pouvons ensuite ouvrir les tubes de communication entre le lanceur et le client \texttt{TUBE\_CL}. Enfin, le client essaye de lire sur chaque tube la sortie de la commande (à travers les tubes \texttt{TUBE\_RES} et \texttt{TUBE\_ERR}) et l'affiche sur la sortie correspondante.
+Cette fonction supprime la file précédemment crée portant le nom
+\texttt{NOM\_SHM} et libère les ressources associées.
+Renvoie \texttt{-1} en cas d'erreur, \texttt{0} sinon. Les erreurs peuvent
+être causées par :
+\begin{itemize}
+    \item L'absence d'un segment de mémoire partagée ayant pour nom
+          \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si,
+          lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été
+          créé correctement);
+    \item Une erreur lors de la destruction des sémaphores.
+\end{itemize}
 
+\subsection{\texttt{enfiler}}
+\begin{center}
+    \texttt{int enfiler(pid\_t donnee)}
+\end{center}
 
-    \section{Difficultés rencontrées}
-    \begin{itemize}
-        \item Nous n'avons pas réussi à implémenter l'utilisation des tubes lors du passage
-        des commandes.
-        \item Nous avons rencontré des difficultés pour formater/parser la commande dans le lanceur
-        afin de pouvoir utiliser \texttt{execvp}.
-        \item Dans le client, nous avons eu des difficultés liés à la récupération des
-        informations issus des tubes de réponses. En effet, nous pouvions soit rediriger les sorties du client ou plus simplement lire dans les tubes puis écrire dans les sorties. Nous avons au final opté pour la seconde solution.
-        \item La gestion du "timing" entre le client et le lanceur fut compliqué. En effet, nous avions dû constamment changer l'emplacement des blocs de code permettant les créations/lectures/écritures des différents tubes afin d'éviter une lecture/écriture sans écrivain/lecteur, bloquant indéfiniment l'exécution de notre code.
-        \item L'aspect ouvert de ce projet a mené à de nombreux désaccords, chaque personne ayant participé au projet ayant une interprétation différente de l'énoncé.
-    \end{itemize}
+Cette fonction enfile un identifiant de processus \texttt{donnee} dans la
+file synchronisée. Si la file est pleine et/ou en cours d'utilisation, l'appel
+sera bloquant jusqu'à ce que la file soit défilée au moins une fois et/ou que
+la file soit libre/inutilisée.
+Renvoie \texttt{-1} en cas d'erreur, \texttt{0} sinon. Les erreurs peuvent
+être causées par :
+\begin{itemize}
+    \item L'absence d'un segment de mémoire partagée ayant pour nom
+          \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si,
+          lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été
+          créé correctement);
+    \item Une erreur lors de l'édition d'un des sémaphores.
+\end{itemize}
 
+\subsection{\texttt{defiler}}
+\begin{center}
+    \texttt{pid\_t defiler(void)}
+\end{center}
 
-    \section{Remerciements}
-    Nous tenons à remercier tout particulièrement \begin{itemize}
-                                                      \item \textbf{HADDAG Édouard}
-                                                      \item \textbf{RENAUX VERDIÈRE Théo}
-                                                      \item \textbf{DUMONTIER Louis}
-    \end{itemize} pour leur aide dans la compréhension et la réalisation de ce projet.
+Cette fonction défile depuis la file synchronisée un identifiant de
+processus et la renvoie. Si la file est vide et/ou en cours d'utilisation,
+l'appel sera bloquant jusqu'à ce que la file soit enfilée au moins une fois
+et/ou que la file soit libre/inutilisée.
+Renvoie \texttt{(pid\_t) -1} en cas d'erreur, l'identifiant défilé sinon.
+Les erreurs peuvent être causées par :
+\begin{itemize}
+    \item L'absence d'un segment de mémoire partagée ayant pour nom
+          \texttt{NOM\_SHM} (il est à noter que ce cas de figure peut se produire si,
+          lors d'une utilisation précédente de la bibliothèque, le segment n'a pas été
+          créé correctement);
+    \item Une erreur lors de l'édition d'un des sémaphores.
+\end{itemize}
+
+\section{Parseur}
+Le module parseur est une réutilisation du module \texttt{analyse} donnée
+lors
+du TP 2 qui contient ces deux fonctions.
+
+\begin{itemize}
+    \item \texttt{char **parseur\_arg(const char arg[])} : Prend une chaîne
+          de caractère \texttt{arg} et la découpe en chaîne de caractère distincts selon
+          les espaces.
+
+    \item \texttt{void dispose\_arg(char *argv[])}: Libère les ressources
+          allouées pour le tableau retourné par \texttt{parseur\_arg}.
+\end{itemize}
+Les fonctions n'ont uniquement subi comme modification des test rajoutés
+sur les \texttt{malloc}.
+
+\section{Lanceur de commande}
+Le nom des tubes est défini par une norme choisie commune aux clients et au
+lanceur. Cette norme veut que le nom d'un tube soit une chaîne de caractère qui
+définit l'utilité du tube suivit du PID du client afin que chaque client
+possède des tube qui lui soient propres. Tout les tubes sont créés par le
+client.
+
+\subsection{Macroconstantes}
+\begin{itemize}
+    \item \texttt{TUBE\_CL}: préfixe du tube dans lequel le client écrit
+          les
+          informations pour le lanceur.
+    \item \texttt{TUBE\_RES}: préfixe du tube dans lequel le résultat de la
+          commande sera écrit et envoyé au client.
+    \item \texttt{TUBE\_ERR}: préfixe du tube dans lequel une possible
+          erreur
+          lors de l'exécution de la commande sera écrit et envoyé au client.
+    \item \texttt{BUF\_SIZE}: Taille maximale en nombre de caractère des
+          commandes
+          avec leurs options.
+    \item \texttt{CMD\_SIZE}: Taille maximale en nombre de du nom de la
+          commande
+          (taille déterminer à partir du nombre de caractère de la plus
+          grande commande linux avec une marge de sécurité).
+    \item \texttt{PID\_SIZE}: Taille maximale en nombre de caractère du pid
+          du client.
+\end{itemize}
+
+\subsection{Structure \texttt{my\_thread\_args}}
+La structure \texttt{my\_thread\_args} contient tous les arguments à
+transmettre au thread.
+Il est à noter qu'avec notre implémentation actuelle, seul le PID du cilent
+est transmis. Cette structure est codée de telle manière à faciliter
+l'amélioration du code, permettant d'ajouter aisément de nouveaux éléments
+utiles aux threads.
+
+\subsection{Bloc \texttt{main}}
+Le principe du \texttt{main} est de créer un thread pour chaque demande
+d'exécution de
+commande.
+Nous commençons par faire du lanceur un deamon, pour cela nous faisons un
+processus fils (avec un \texttt{fork}) dans lequel on le dissocie de la session
+avec la fonction \texttt{setsid}.
+Puis on s'occupe de la gestion du signal pour terminer le lanceur. En
+effet, comme le lanceur est un daemon, l'utilisateur va devoir lui envoyer un
+signal pour l'arrêter. On admet ici que l'utilisateur utilisera les commandes
+\texttt{kill  [PID]} ou \texttt{killall [NOM]} pour arrêter le lanceur. Comme
+ces commandes envoient le signal \texttt{SIGTERM} par défaut, nous devons
+associer la réception de ce signal avec :
+\begin{itemize}
+    \item La destruction de la file synchronisée avec la fonction
+          \texttt{destroy\_file}
+    \item La fermeture du programme en lui-même.
+\end{itemize}
+
+Ensuite, tant que nous pouvons défiler un PID depuis la file synchronisée,
+on crée un thread dans lequel on passe comme argument le PID du client.
+
+\subsection{Fonction \texttt{run}}
+La fonction de lancement du thread crée un fils dans lequel on ouvre les 3
+tubes lui permettant de communiquer avec le client. Puis il lit les
+informations donné par le client sur le tube prévu à cette effet. Ensuite on
+redirige les deux sorties standards (\texttt{stdout} et \texttt{stderr}) vers
+les deux tubes ouverts en écriture. On peut ensuite appeler la fonction
+\texttt{parseur\_arg} du module \texttt{parseur} afin de récupérer la commande
+ainsi que chaque option de celle-ci. On finit par utiliser la fonction
+\texttt{execvp} afin d'exécuter la commande demandée. Le père lui ne fait que
+attendre son fils afin
+de libérer les ressources proprement.
+
+\section{Client}
+L'objectif du client est de faire parvenir au lanceur toutes les
+informations transmises par l'utilisateur à travers les arguments passés lors
+de son appel. Ces informations sont passées par deux canaux différents :
+\begin{itemize}
+    \item L'envoi du PID du client au lanceur se fait à travers la file
+          synchronisée;
+    \item L'envoi de la commande à exécuter par le lanceur se fait à
+          travers le tube portant le nom \texttt{TUBE\_CL}
+\end{itemize}
+On commence par générer le nom des tubes avant de créer ces tubes. Ensuite
+on
+envoie le PID du client dans la file afin que le lanceur puisse ouvrir les
+tubes.
+Maintenant on ouvre le tube de communication entre le client et le lanceur
+et on y écrit la commande à exécuter.
+Nous pouvons ensuite ouvrir les tubes de communication entre le lanceur et
+le client \texttt{TUBE\_CL}. Enfin, le client essaye de lire sur chaque tube la
+sortie de la commande (à travers les tubes \texttt{TUBE\_RES} et
+\texttt{TUBE\_ERR}) et l'affiche sur la sortie correspondante.
+
+\section{Difficultés rencontrées}
+\begin{itemize}
+    \item Nous n'avons pas réussi à implémenter l'utilisation des tubes
+          lors du passage
+          des commandes.
+    \item Nous avons rencontré des difficultés pour formater/parser la
+          commande dans le lanceur
+          afin de pouvoir utiliser \texttt{execvp}.
+    \item Dans le client, nous avons eu des difficultés liés à la
+          récupération des
+          informations issus des tubes de réponses. En effet, nous pouvions soit
+          rediriger les sorties du client ou plus simplement lire dans les tubes puis
+          écrire dans les sorties. Nous avons au final opté pour la seconde solution.
+    \item La gestion du "timing" entre le client et le lanceur fut
+          compliqué. En effet, nous avions dû constamment changer l'emplacement des blocs
+          de code permettant les créations/lectures/écritures des différents tubes afin
+          d'éviter une lecture/écriture sans écrivain/lecteur, bloquant indéfiniment
+          l'exécution de notre code.
+    \item L'aspect ouvert de ce projet a mené à de nombreux désaccords,
+          chaque personne ayant participé au projet ayant une interprétation différente
+          de l'énoncé.
+\end{itemize}
+
+\section{Remerciements}
+Nous tenons à remercier tout particulièrement \begin{itemize}
+    \item \textbf{HADDAG
+              Édouard}
+    \item \textbf{RENAUX
+              VERDIÈRE Théo}
+    \item \textbf{DUMONTIER
+              Louis}
+\end{itemize} pour leur aide dans la compréhension et la réalisation de ce
+projet.
 
 \end{document}
