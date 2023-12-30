@@ -90,12 +90,6 @@ void *run(struct my_thread_args *a) {
       exit(EXIT_FAILURE);
     case 0:
       {
-        /* TEMP */
-        //int log = open("log", O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
-        //if (log == -1) {
-        //exit(EXIT_FAILURE);
-        //}
-        /* FIN TEMP */
         int fd;
         int fd_res;
         int fd_err;
@@ -162,12 +156,6 @@ void *run(struct my_thread_args *a) {
         }
         char **opt = parseur_arg(buffer);
         execvp(opt[0], (char * const *) opt);
-        //if (write(log, opt[0], strlen(opt[0])) == -1) {
-        //exit(EXIT_FAILURE);
-        //}
-        //if (write(log, opt[1], strlen(opt[1])) == -1) {
-        //exit(EXIT_FAILURE);
-        //}
         dispose_arg(opt);
         fprintf(stderr, "Error during the execution of the command.\n");
         exit(EXIT_FAILURE);
@@ -184,7 +172,7 @@ void *run(struct my_thread_args *a) {
 void mafct(int sig) {
   if (sig == SIGTERM) {
     if (destroy_file() == -1) {
-      fprintf(stderr, "Error during destroy_file\n");
+      fprintf(stderr, "Error during the execution of destroy_file\n");
       exit(EXIT_FAILURE);
     }
   }
