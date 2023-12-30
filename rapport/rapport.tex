@@ -98,4 +98,13 @@ Maintenant on ouvre le tube de communication entre le client et le lanceur
 et on y écrit la commande à exécuter.
 On peut ensuite ouvrir les tubes de communication entre le lanceur et le client
 Puis en essaye de lire sur chaque tube et on l'affiche sur la sortie standard
+
+\section{Difficulté rencontré}
+Nous n'avons pas réussi à implementer l'utilisation des pipes lors du passage
+des commandes.
+Nous avons rencontrer des difficulté pour parser la commande dans le lanceur
+afin de pouvoir utiliser \textit{execvp}.
+Dans le client nous avons eu des probléme quant à la récupération des
+informations issus des 2 tubes de réponses, fallait-il rediriger les sorties
+ou lire dans les tubes puis ecrire dans les sortir (solution qui fut choisis).
 \end{document}

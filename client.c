@@ -1,3 +1,4 @@
+
 #ifdef _XOPEN_SOURCE
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500
@@ -26,7 +27,7 @@
 
 int main(const int argc, char **argv) {
   if (argc == 1) {
-    fprintf(stderr, "USAGE : client [cmd1]|[cmd2] |... |[cmdN]\n");
+    fprintf(stderr, "USAGE : client [cmd]\n");
     return EXIT_SUCCESS;
   }
   char pid[PID_SIZE];
