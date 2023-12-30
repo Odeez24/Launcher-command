@@ -37,9 +37,9 @@ puis on libère le segment de mémoire partagée. Pour les fonctions
 \textit{defiler} et \textit{enfiler}
 c'est un simple problème consommateur/producteur avec les sémaphores.
 \section{Parseur}
-Le module parsuer est une réutilisation du module \textit{analyse} donner lors
+Le module parseur est une réutilisation du module \textit{analyse} donner lors
 du tp 2
-avec des tests rajoutée notament sur les malloc.
+avec des tests rajoutée notamment sur les malloc.
 \section{Lanceur de commande}
 Le nom des tubes est définis par une normes choisis qui s'applique
 entre le lanceur et le client. Cette norme veut que le nom d'un tube soit une
@@ -75,20 +75,27 @@ transmettre au thread.
 Nous commençons par faire du lanceur un deamon. Puis on s'occupe de la gestion
 du signal pour
 terminer le lanceur.
-Le principe du main est de créer un thread pour chaque demande d'éxécution de
+Le principe du main est de créer un thread pour chaque demande d'exécution de
 commande qui est représenter par le défilement du pid du client faisant la
-demande d'éxécution.
+demande d'exécution.
 \subsection{run}
 La fonction de lancement du thread ouvre les 3 tubes lui permettant de
-comuniquer
+communiquer
 avec le client. Puis lit les informations donner par le client sur le tube
 prévu
-à cette effet. Ensuite on redirige les 2 sortie standart vers les 2 tubes
-ouvert en écritures. On peut ensuite appeller la fonction \textit{parseur\_arg}
+à cette effet. Ensuite on redirige les 2 sortie standard vers les 2 tubes
+ouvert en écritures. On peut ensuite appeler la fonction \textit{parseur\_arg}
 du module \textit{parseur} afin de récupérer la commande ainsi que chaque
 option de celle-ci. On fini par utiliser la fonction \textit{execvp} afin
-d'éxécuter la commande demander.
-
+d'exécuter la commande demander.
 \section{Client}
-
+Le client récupère la commande à exécuter dans ses arguments lors de son
+appelle.
+On commence par générer le nom des tubes puis on créer ces tubes. Ensuite on
+envoie
+le pid du client dans la file afin que le lanceur puisse ouvrir les tubes.
+Maintenant on ouvre le tube de communication entre le client et le lanceur
+et on y écrit la commande à exécuter.
+On peut ensuite ouvrir les tubes de communication entre le lanceur et le client
+Puis en essaye de lire sur chaque tube et on l'affiche sur la sortie standard
 \end{document}
